@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CY Works — 互动作品集</title>
+  <meta name="description" content="手势互动游戏、微信小程序、小游戏作品展示">
+  <!-- 使用国内可访问的字体服务替代 Google Fonts -->
+  <link href="https://fonts.loli.net/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- ============ NAVIGATION ============ -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">CY<span class="logo-dot">.</span></a>
+      <div class="nav-links">
+        <a href="#works">作品</a>
+        <a href="#contact" class="nav-cta">联系我</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero" id="hero">
+    <div class="hero-content">
+      <h1 class="hero-title">
+        <span class="title-line">hi，我是 <span class="title-accent">cy</span>。</span>
+      </h1>
+      <p class="hero-desc">
+        一个不会写代码的文科生市场人<br>
+        一个人 = 产品 + 设计 + 开发 + 上线
+      </p>
+      <p class="hero-sub">
+        脑子里总有些有意思的想法<br>
+        然后它们就真的被做出来了
+      </p>
+      <p class="hero-thanks">
+        感谢 AI 时代<br>
+        感谢 Claude · 感谢 Cursor · 感谢 WorkBuddy
+      </p>
+      <div class="hero-actions">
+        <a href="#works" class="btn-primary">
+          看看作品
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WORKS ============ -->
+  <section class="works" id="works">
+    <div class="bento-grid">
+      <!-- ★ Large: 百变小樱魔法卡 -->
+      <article class="bento-item bento-large" data-project="sakura">
+        <div class="bento-info">
+          <div class="bento-tags">
+            <span class="tag">H5 游戏</span>
+            <span class="tag">手势互动</span>
+          </div>
+          <h3>百变小樱魔法卡</h3>
+          <p>打开摄像头，用手势隔空召唤魔法阵，你的手就是魔杖</p>
+          <span class="bento-cta">查看详情 <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="bento-preview sakura-preview">
+          <div class="sakura-scene">
+            <div class="sakura-stars"></div>
+            <div class="sakura-magic-circle">
+              <div class="mc-ring mc-ring-outer"></div>
+              <div class="mc-ring mc-ring-inner"></div>
+              <div class="mc-star">✦</div>
+            </div>
+            <div class="sakura-card-orbit">
+              <div class="orbit-card" style="--i:0"><div class="card-face">🌸</div></div>
+              <div class="orbit-card" style="--i:1"><div class="card-face">⭐</div></div>
+              <div class="orbit-card" style="--i:2"><div class="card-face">🌙</div></div>
+              <div class="orbit-card" style="--i:3"><div class="card-face">💫</div></div>
+              <div class="orbit-card" style="--i:4"><div class="card-face">✨</div></div>
+              <div class="orbit-card" style="--i:5"><div class="card-face">🔮</div></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- ★ Large Reverse: 塔罗牌 -->
+      <article class="bento-item bento-large bento-reverse" data-project="tarot">
+        <div class="bento-info">
+          <div class="bento-tags">
+            <span class="tag">H5 游戏</span>
+            <span class="tag">手势互动</span>
+            <span class="tag">占卜</span>
+          </div>
+          <h3>塔罗牌占卜</h3>
+          <p>完整 78 张韦特塔罗，用手势隔空抽牌，完成过去·现在·未来三牌阵占卜</p>
+          <span class="bento-cta">查看详情 <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="bento-preview">
+          <div class="preview-static" style="background-image: url('screenshots/tarot.png')"></div>
+        </div>
+      </article>
+
+      <!-- ★ Large: 一瞬小程序（暂时隐藏，准备好后取消注释即可）
+      <article class="bento-item bento-large" data-project="miniapp">
+        <div class="bento-info">
+          <div class="bento-tags">
+            <span class="tag">微信小程序</span>
+            <span class="tag">社交</span>
+          </div>
+          <h3>一瞬</h3>
+          <p>摇一摇复活，一个帮你认识新朋友的小程序，不用加微信那种</p>
+          <span class="bento-cta">查看详情 <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+        <div class="bento-preview">
+          <div class="preview-static" style="background-image: url('screenshots/yishun-showcase.png')"></div>
+        </div>
+      </article>
+      -->
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer" id="contact">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <span class="footer-logo">CY<span class="logo-dot">.</span></span>
+        <span class="footer-tagline">一个人写代码，一个人上线，一个人修 bug。</span>
+        <span class="footer-copy">Built with ☕ & 熬夜 · © 2026 CY</span>
+      </div>
+      <div class="footer-right">
+        <a href="mailto:caiyang.cycy@163.com" class="footer-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
+          邮箱
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============ PROJECT DETAIL MODAL ============ -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modal">
+      <button class="modal-close" id="modalClose" aria-label="关闭">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

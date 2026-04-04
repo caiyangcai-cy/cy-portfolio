@@ -1,0 +1,797 @@
+/* ========================================
+   百变小樱魔法卡 - 手势召唤系统
+   暗色魔法风格主题 v4 - 圆形排列 + 复杂魔法阵
+   ======================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-dark: #0a0a1a;
+  --bg-card: #1a1a3a;
+  --gold: #ffd700;
+  --gold-dim: #b8960f;
+  --gold-glow: rgba(255, 215, 0, 0.4);
+  --pink: #ff6baf;
+  --cyan: #00e5ff;
+  --purple: #b388ff;
+  --wind-color: #4fc3f7;
+  --water-color: #29b6f6;
+  --fire-color: #ff7043;
+  --light-color: #fdd835;
+  --shadow-color: #7c4dff;
+  --earth-color: #8d6e63;
+  --thunder-color: #ffca28;
+  --flower-color: #f48fb1;
+  --snow-color: #80deea;
+  --time-color: #ce93d8;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-dark);
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  color: #e0e0e0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.hidden { display: none !important; }
+
+/* ===== 加载画面 ===== */
+#loading-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-dark);
+  z-index: 9999;
+}
+
+.magic-circle-loader {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.magic-circle-loader .circle {
+  position: absolute;
+  border: 2px solid transparent;
+  border-radius: 50%;
+}
+
+.magic-circle-loader .outer {
+  inset: 0;
+  border-top-color: var(--gold);
+  border-right-color: var(--pink);
+  animation: spin 2s linear infinite;
+}
+
+.magic-circle-loader .inner {
+  inset: 15px;
+  border-bottom-color: var(--cyan);
+  border-left-color: var(--purple);
+  animation: spin 1.5s linear infinite reverse;
+}
+
+.magic-circle-loader .star {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: var(--gold);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+
+.loading-text {
+  margin-top: 24px;
+  font-size: 18px;
+  color: var(--gold);
+  letter-spacing: 2px;
+}
+
+.loading-sub {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #666;
+}
+
+/* ===== 摄像头 ===== */
+#camera {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  opacity: 0.2;
+  z-index: 0;
+}
+
+#camera-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ===== 手势提示 ===== */
+#gesture-hint {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 40px;
+  backdrop-filter: blur(10px);
+  z-index: 100;
+  transition: all 0.3s ease;
+}
+
+#gesture-hint .hint-icon {
+  font-size: 24px;
+  animation: hintBounce 1.5s ease-in-out infinite;
+}
+
+#gesture-hint .hint-text {
+  font-size: 14px;
+  color: var(--gold);
+  white-space: nowrap;
+}
+
+@keyframes hintBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* ===== 状态标签 ===== */
+#state-badge {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 20px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  color: var(--gold);
+  z-index: 100;
+  transition: all 0.3s;
+}
+
+/* ===== 魔法阵背景 ===== */
+#magic-circle-bg {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  /* 魔法阵半径250px => 直径500px，加一点余量 */
+  width: 540px;
+  height: 540px;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  pointer-events: none;
+  animation: magicCircleSpin 30s linear infinite;
+  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.2));
+  opacity: 0.65;
+}
+
+#magic-circle-bg svg {
+  width: 100%;
+  height: 100%;
+}
+
+#magic-circle-bg::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.06) 0%, transparent 70%);
+  animation: magicGlow 4s ease-in-out infinite alternate;
+}
+
+@keyframes magicCircleSpin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes magicGlow {
+  from { opacity: 0.4; }
+  to { opacity: 0.9; }
+}
+
+#magic-circle-bg.summoning {
+  animation: magicCircleAppear 1.2s ease-out forwards, magicCircleSpin 30s linear 1.2s infinite;
+}
+
+@keyframes magicCircleAppear {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
+  100% { opacity: 0.65; transform: translate(-50%, -50%) scale(1) rotate(120deg); }
+}
+
+
+/* ========================================
+   圆形排列卡牌 (Circle Layout)
+   10张卡牌均匀分布在半径200px的圆上
+   ======================================== */
+#carousel-stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+#carousel-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#carousel {
+  position: relative;
+  width: 0;
+  height: 0;
+  /* 作为卡牌的定位参考中心 */
+}
+
+/* 单张圆形排列卡牌 */
+.carousel-card {
+  position: absolute;
+  width: 90px;
+  height: 126px;
+  border-radius: 8px;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: filter 0.5s ease, opacity 0.5s ease, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* 让卡牌居中在圆形上 */
+  margin-left: -45px;
+  margin-top: -63px;
+}
+
+.carousel-card .card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.08), inset 0 0 15px rgba(0, 0, 0, 0.5);
+  transition: all 0.4s;
+}
+
+.carousel-card .card-glow {
+  position: absolute;
+  inset: -3px;
+  border-radius: 11px;
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+
+.carousel-card .card-symbol {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -58%);
+  font-size: 30px;
+  text-shadow: 0 0 15px currentColor;
+  transition: all 0.3s;
+}
+
+.carousel-card .card-name {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
+.carousel-card .card-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 42px;
+  height: 42px;
+  transform: translate(-50%, -58%);
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.15;
+  animation: cardCircleSpin 8s linear infinite;
+}
+
+@keyframes cardCircleSpin {
+  to { transform: translate(-50%, -58%) rotate(360deg); }
+}
+
+/* 当前选中的卡牌高亮 */
+.carousel-card.front-card {
+  z-index: 5;
+  filter: brightness(1.3) drop-shadow(0 0 12px var(--gold-glow));
+}
+
+.carousel-card.front-card .card-inner {
+  border-color: var(--gold);
+  box-shadow: 0 0 25px var(--gold-glow), 0 5px 25px rgba(0,0,0,0.4);
+}
+
+.carousel-card.front-card .card-glow {
+  opacity: 0.9;
+}
+
+.carousel-card.front-card .card-symbol {
+  transform: translate(-50%, -58%) scale(1.15);
+}
+
+/* 未选中的卡牌变暗 */
+.carousel-card.dimmed-card {
+  filter: brightness(0.5) saturate(0.6);
+  opacity: 0.65;
+}
+
+/* 卡牌颜色主题 */
+.carousel-card[data-element="wind"]    { color: var(--wind-color); }
+.carousel-card[data-element="water"]   { color: var(--water-color); }
+.carousel-card[data-element="fire"]    { color: var(--fire-color); }
+.carousel-card[data-element="light"]   { color: var(--light-color); }
+.carousel-card[data-element="shadow"]  { color: var(--shadow-color); }
+.carousel-card[data-element="earth"]   { color: var(--earth-color); }
+.carousel-card[data-element="thunder"] { color: var(--thunder-color); }
+.carousel-card[data-element="flower"]  { color: var(--flower-color); }
+.carousel-card[data-element="snow"]    { color: var(--snow-color); }
+.carousel-card[data-element="time"]    { color: var(--time-color); }
+
+.carousel-card[data-element="wind"]    .card-inner { border-color: rgba(79, 195, 247, 0.3); }
+.carousel-card[data-element="water"]   .card-inner { border-color: rgba(41, 182, 246, 0.3); }
+.carousel-card[data-element="fire"]    .card-inner { border-color: rgba(255, 112, 67, 0.3); }
+.carousel-card[data-element="light"]   .card-inner { border-color: rgba(253, 216, 53, 0.3); }
+.carousel-card[data-element="shadow"]  .card-inner { border-color: rgba(124, 77, 255, 0.3); }
+.carousel-card[data-element="earth"]   .card-inner { border-color: rgba(141, 110, 99, 0.3); }
+.carousel-card[data-element="thunder"] .card-inner { border-color: rgba(255, 202, 40, 0.3); }
+.carousel-card[data-element="flower"]  .card-inner { border-color: rgba(244, 143, 177, 0.3); }
+.carousel-card[data-element="snow"]    .card-inner { border-color: rgba(128, 222, 234, 0.3); }
+.carousel-card[data-element="time"]    .card-inner { border-color: rgba(206, 147, 216, 0.3); }
+
+.carousel-card[data-element="wind"]    .card-glow { box-shadow: 0 0 25px var(--wind-color), inset 0 0 20px rgba(79, 195, 247, 0.12); }
+.carousel-card[data-element="water"]   .card-glow { box-shadow: 0 0 25px var(--water-color), inset 0 0 20px rgba(41, 182, 246, 0.12); }
+.carousel-card[data-element="fire"]    .card-glow { box-shadow: 0 0 25px var(--fire-color), inset 0 0 20px rgba(255, 112, 67, 0.12); }
+.carousel-card[data-element="light"]   .card-glow { box-shadow: 0 0 25px var(--light-color), inset 0 0 20px rgba(253, 216, 53, 0.12); }
+.carousel-card[data-element="shadow"]  .card-glow { box-shadow: 0 0 25px var(--shadow-color), inset 0 0 20px rgba(124, 77, 255, 0.12); }
+.carousel-card[data-element="earth"]   .card-glow { box-shadow: 0 0 25px var(--earth-color), inset 0 0 20px rgba(141, 110, 99, 0.12); }
+.carousel-card[data-element="thunder"] .card-glow { box-shadow: 0 0 25px var(--thunder-color), inset 0 0 20px rgba(255, 202, 40, 0.12); }
+.carousel-card[data-element="flower"]  .card-glow { box-shadow: 0 0 25px var(--flower-color), inset 0 0 20px rgba(244, 143, 177, 0.12); }
+.carousel-card[data-element="snow"]    .card-glow { box-shadow: 0 0 25px var(--snow-color), inset 0 0 20px rgba(128, 222, 234, 0.12); }
+.carousel-card[data-element="time"]    .card-glow { box-shadow: 0 0 25px var(--time-color), inset 0 0 20px rgba(206, 147, 216, 0.12); }
+
+
+/* ========================================
+   选定卡牌放大展示（食指选定 → 定格放大）
+   ======================================== */
+#card-selected-view {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.selected-magic-circle {
+  position: absolute;
+  width: min(65vw, 65vh);
+  height: min(65vw, 65vh);
+  animation: magicCircleSpin 15s linear infinite;
+  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.15));
+  pointer-events: none;
+}
+
+.selected-magic-circle svg {
+  width: 100%;
+  height: 100%;
+}
+
+.selected-glow {
+  position: absolute;
+  width: min(50vw, 50vh);
+  height: min(50vw, 50vh);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  animation: magicGlow 2.5s ease-in-out infinite alternate;
+}
+
+.selected-card {
+  position: relative;
+  width: 200px;
+  height: 280px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 3px solid var(--gold);
+  box-shadow: 0 0 40px rgba(255, 215, 0, 0.3), 0 0 80px rgba(255, 215, 0, 0.1), 0 20px 60px rgba(0,0,0,0.5);
+  z-index: 2;
+  animation: selectedCardEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes selectedCardEnter {
+  0% { opacity: 0; transform: scale(0.6) translateY(40px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.selected-card .selected-card-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.selected-card .sel-symbol {
+  font-size: 72px;
+  text-shadow: 0 0 30px currentColor;
+  z-index: 1;
+}
+
+.selected-card .sel-circle {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.2;
+  animation: selCircleSpin 6s linear infinite;
+}
+
+@keyframes selCircleSpin {
+  to { transform: rotate(360deg); }
+}
+
+.selected-card .sel-label {
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-shadow: 0 0 12px currentColor;
+  z-index: 1;
+}
+
+.selected-card-name {
+  margin-top: 20px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--gold);
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+  z-index: 2;
+}
+
+.selected-hint {
+  margin-top: 14px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  z-index: 2;
+}
+
+
+/* ========================================
+   3D翻转展示（双指指着触发）
+   ======================================== */
+#flip-card-display {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 70;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.card-3d-wrapper {
+  perspective: 1000px;
+}
+
+.card-3d {
+  width: 200px;
+  height: 280px;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: cardFlipIn 0.8s ease forwards;
+}
+
+@keyframes cardFlipIn {
+  0% { transform: rotateY(180deg) scale(0.5); opacity: 0; }
+  100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+}
+
+.card-front, .card-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  backface-visibility: hidden;
+}
+
+.card-front {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 40px rgba(255, 215, 0, 0.3), 0 0 80px rgba(255, 215, 0, 0.1);
+  overflow: hidden;
+}
+
+.card-front .big-symbol {
+  font-size: 72px;
+  text-shadow: 0 0 30px currentColor;
+}
+
+.card-front .magic-circle-deco {
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.15;
+  animation: cardCircleSpin 6s linear infinite;
+}
+
+.card-front .element-label {
+  margin-top: 16px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-shadow: 0 0 10px currentColor;
+}
+
+.card-back {
+  background: linear-gradient(135deg, #1a1a3a, #2a1a4a);
+  border: 2px solid var(--gold-dim);
+  transform: rotateY(180deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-back::after {
+  content: '✦';
+  font-size: 48px;
+  color: var(--gold-dim);
+  opacity: 0.5;
+}
+
+.flip-card-name {
+  margin-top: 20px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--gold);
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.flip-card-hint {
+  margin-top: 12px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ===== 特效层 ===== */
+#fx-canvas, #particle-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 80;
+}
+
+#particle-canvas {
+  z-index: 45;
+}
+
+/* ===== 调试面板 ===== */
+#debug-panel {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  width: 330px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 200;
+  backdrop-filter: blur(10px);
+}
+
+.debug-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 215, 0, 0.1);
+  font-size: 13px;
+  color: var(--gold);
+}
+
+.debug-header button {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#debug-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+#debug-info {
+  padding: 8px 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  font-size: 12px;
+  color: #aaa;
+}
+
+#debug-info span {
+  color: var(--cyan);
+  font-family: monospace;
+}
+
+/* ===== 底部工具栏 ===== */
+#toolbar {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  z-index: 150;
+}
+
+#toolbar button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.6);
+  color: #ccc;
+  font-size: 18px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s;
+}
+
+#toolbar button:hover {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* ===== 魔法释放全屏 ===== */
+.spell-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  opacity: 0;
+  animation: spellFadeIn 0.5s ease forwards;
+}
+
+@keyframes spellFadeIn {
+  to { opacity: 1; }
+}
+
+.spell-overlay .spell-name {
+  font-size: 48px;
+  font-weight: 900;
+  letter-spacing: 12px;
+  text-shadow: 0 0 40px currentColor, 0 0 80px currentColor;
+  animation: spellNamePulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes spellNamePulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+
+.spell-overlay .spell-subtitle {
+  margin-top: 12px;
+  font-size: 16px;
+  opacity: 0.7;
+  letter-spacing: 4px;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 600px) {
+  .carousel-card {
+    width: 70px;
+    height: 98px;
+    margin-left: -35px;
+    margin-top: -49px;
+  }
+
+  .carousel-card .card-symbol {
+    font-size: 24px;
+  }
+
+  .carousel-card .card-name {
+    font-size: 9px;
+    bottom: 5px;
+  }
+
+  .carousel-card .card-circle {
+    width: 32px;
+    height: 32px;
+  }
+
+  #magic-circle-bg {
+    width: 380px;
+    height: 380px;
+  }
+
+  .selected-card {
+    width: 160px;
+    height: 224px;
+  }
+
+  .selected-card .sel-symbol {
+    font-size: 54px;
+  }
+
+  .card-3d {
+    width: 160px;
+    height: 224px;
+  }
+
+  #gesture-hint {
+    bottom: 20px;
+    padding: 8px 16px;
+  }
+
+  #gesture-hint .hint-text {
+    font-size: 12px;
+  }
+
+  .spell-overlay .spell-name {
+    font-size: 32px;
+  }
+}

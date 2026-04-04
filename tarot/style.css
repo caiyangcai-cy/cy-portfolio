@@ -1,0 +1,1482 @@
+/* ========================================
+   塔罗牌手势占卜系统
+   星空暗黑塔罗风格 v6 — 性能优化版
+   Safari/Chrome 双端流畅
+   ======================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-dark: #050510;
+  --bg-card: #0f1123;
+  --gold: #d4af37;
+  --gold-dim: #997a00;
+  --gold-glow: rgba(212, 175, 55, 0.4);
+  --cyan: #00e5ff;
+  --card-w: 140px;
+  --card-h: 238px;
+  /* v6 新增配色 */
+  --text-primary: #f0ebe3;
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --text-muted: rgba(255, 255, 255, 0.35);
+  --accent-rose: #e8b4b8;
+  --accent-lavender: #b8a9c9;
+  --accent-ice: #a8c8d8;
+  /* 优化：使用更深的半透明背景代替高斯模糊 */
+  --glass-bg: rgba(8, 6, 22, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.08);
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 0%, #0a0a2e 0%, #050510 50%, #020208 100%);
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+  color: var(--text-primary);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* 星空背景画布 — GPU 加速 */
+#starfield-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  will-change: contents;
+  transform: translateZ(0);
+}
+
+.hidden { display: none !important; }
+
+/* ===== 加载画面 ===== */
+#loading-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-dark);
+  z-index: 9999;
+}
+
+.magic-circle-loader {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.magic-circle-loader .circle {
+  position: absolute;
+  border: 2px solid transparent;
+  border-radius: 50%;
+}
+
+.magic-circle-loader .outer {
+  inset: 0;
+  border-top-color: var(--accent-rose);
+  border-right-color: rgba(255,255,255,0.12);
+  animation: spin 3s linear infinite;
+}
+
+.magic-circle-loader .inner {
+  inset: 15px;
+  border-bottom-color: var(--accent-lavender);
+  border-left-color: rgba(255,255,255,0.08);
+  animation: spin 2s linear infinite reverse;
+}
+
+.magic-circle-loader .star {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: var(--text-primary);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.9); } }
+
+.loading-text {
+  margin-top: 24px;
+  font-size: 17px;
+  color: var(--text-primary);
+  letter-spacing: 3px;
+  font-weight: 300;
+}
+
+.loading-sub {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ===== 占卜提问面板 ===== */
+#question-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(90vw, 420px);
+  padding: 40px 28px 36px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 150;
+  text-align: center;
+  transition: opacity 0.4s ease;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.question-title {
+  font-size: 18px;
+  color: var(--text-primary);
+  letter-spacing: 4px;
+  margin-bottom: 20px;
+  font-weight: 300;
+}
+
+.question-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 2;
+  margin-bottom: 12px;
+  font-weight: 300;
+}
+
+.question-examples {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 28px;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+}
+
+.question-silent-btn {
+  display: inline-block;
+  padding: 14px 36px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--text-primary);
+  font-size: 15px;
+  letter-spacing: 2px;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 300;
+  font-family: inherit;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: rgba(232, 180, 184, 0.3);
+}
+
+.question-silent-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--accent-rose);
+  box-shadow: 0 0 16px rgba(232, 180, 184, 0.15);
+}
+
+.question-silent-btn:active {
+  transform: scale(0.97);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ===== 摄像头 — 完全隐藏 ===== */
+#camera {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#camera-overlay {
+  display: none;
+}
+
+/* ===== 手势提示 — 毛玻璃胶囊（降低blur提升Safari性能） ===== */
+#gesture-hint {
+  position: fixed;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 22px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 40px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 100;
+  transition: opacity 0.3s ease;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+#gesture-hint .hint-icon {
+  font-size: 20px;
+  animation: hintBounce 1.5s ease-in-out infinite;
+}
+
+#gesture-hint .hint-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+
+@keyframes hintBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+/* ===== 状态标签 — 简约标签 移到左上角避免遮挡 ===== */
+#state-badge {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  z-index: 100;
+  transition: opacity 0.3s;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ===== 占卜收集区域 — 顶部居中 ===== */
+#tarot-collection {
+  position: fixed;
+  top: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 16px;
+  z-index: 100;
+  transition: opacity 0.3s ease;
+}
+
+.collection-slot {
+  width: 54px;
+  height: 82px;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.3s;
+}
+
+.collection-slot .slot-label {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.collection-slot.filled {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.06);
+}
+
+.collection-slot .slot-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+/* ===== 魔法阵背景 ===== */
+#magic-circle-bg {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(80vw, 80vh);
+  height: min(80vw, 80vh);
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  pointer-events: none;
+  animation: magicCircleSpin 40s linear infinite;
+  filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.1));
+}
+
+#magic-circle-bg svg {
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes magicCircleSpin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+#magic-circle-bg.summoning {
+  animation: magicCircleAppear 1.5s ease-out forwards, magicCircleSpin 40s linear 1.5s infinite;
+}
+
+@keyframes magicCircleAppear {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(0deg); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(45deg); }
+}
+
+
+/* ========================================
+   3D 立体底盘平台 — 小樱魔法阵风格
+   ======================================== */
+#platform-3d {
+  position: fixed;
+  bottom: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 240px;
+  z-index: 8;
+  pointer-events: none;
+  perspective: 600px;
+}
+
+.platform-layers {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateX(55deg);
+}
+
+.platform-glow-surface {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 520px;
+  height: 520px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse, rgba(255,182,193,0.2) 0%, rgba(255,215,0,0.08) 40%, transparent 70%);
+  pointer-events: none;
+}
+
+.platform-sakura-circle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 500px;
+  height: 500px;
+  transform: translate(-50%, -50%);
+  animation: magicCircleSpin 40s linear infinite;
+}
+
+.sakura-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.sakura-ring-outer {
+  width: 500px;
+  height: 500px;
+  border: 2.5px solid rgba(255, 182, 193, 0.55);
+  box-shadow:
+    0 0 0 6px rgba(255, 215, 0, 0.15),
+    0 0 60px rgba(255, 182, 193, 0.35),
+    0 0 120px rgba(255, 182, 193, 0.15),
+    inset 0 0 80px rgba(255, 215, 0, 0.1);
+  animation: platformPulse 4s ease-in-out infinite alternate;
+}
+
+.sakura-ring-mid {
+  width: 380px;
+  height: 380px;
+  border: 2px solid rgba(255, 215, 0, 0.5);
+  box-shadow:
+    0 0 40px rgba(255, 215, 0, 0.25),
+    0 0 80px rgba(255, 215, 0, 0.1),
+    inset 0 0 50px rgba(255, 182, 193, 0.12);
+  animation: platformPulse 4s ease-in-out 0.5s infinite alternate;
+}
+
+.sakura-ring-inner {
+  width: 240px;
+  height: 240px;
+  border: 1.5px solid rgba(255, 182, 193, 0.6);
+  box-shadow:
+    0 0 35px rgba(255, 182, 193, 0.4),
+    0 0 70px rgba(255, 182, 193, 0.15),
+    inset 0 0 40px rgba(255, 215, 0, 0.12);
+  animation: platformPulse 4s ease-in-out 1s infinite alternate;
+}
+
+.sakura-star-12-platform {
+  position: absolute;
+  inset: 0;
+  animation: magicCircleSpin 30s linear infinite reverse;
+}
+
+.sakura-star-12-platform::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent 0deg, rgba(255,182,193,0.55) 0.8deg, rgba(255,182,193,0.3) 1.5deg, transparent 2.5deg,
+      transparent 30deg, rgba(255,215,0,0.45) 30.8deg, rgba(255,215,0,0.2) 31.5deg, transparent 32.5deg,
+      transparent 60deg, rgba(255,182,193,0.55) 60.8deg, rgba(255,182,193,0.3) 61.5deg, transparent 62.5deg,
+      transparent 90deg, rgba(255,215,0,0.45) 90.8deg, rgba(255,215,0,0.2) 91.5deg, transparent 92.5deg,
+      transparent 120deg, rgba(255,182,193,0.55) 120.8deg, rgba(255,182,193,0.3) 121.5deg, transparent 122.5deg,
+      transparent 150deg, rgba(255,215,0,0.45) 150.8deg, rgba(255,215,0,0.2) 151.5deg, transparent 152.5deg,
+      transparent 180deg, rgba(255,182,193,0.55) 180.8deg, rgba(255,182,193,0.3) 181.5deg, transparent 182.5deg,
+      transparent 210deg, rgba(255,215,0,0.45) 210.8deg, rgba(255,215,0,0.2) 211.5deg, transparent 212.5deg,
+      transparent 240deg, rgba(255,182,193,0.55) 240.8deg, rgba(255,182,193,0.3) 241.5deg, transparent 242.5deg,
+      transparent 270deg, rgba(255,215,0,0.45) 270.8deg, rgba(255,215,0,0.2) 271.5deg, transparent 272.5deg,
+      transparent 300deg, rgba(255,182,193,0.55) 300.8deg, rgba(255,182,193,0.3) 301.5deg, transparent 302.5deg,
+      transparent 330deg, rgba(255,215,0,0.45) 330.8deg, rgba(255,215,0,0.2) 331.5deg, transparent 332.5deg
+    );
+  -webkit-mask: radial-gradient(circle, transparent 12%, white 13%, white 96%, transparent 97%);
+  mask: radial-gradient(circle, transparent 12%, white 13%, white 96%, transparent 97%);
+}
+
+.sakura-inner-ring-platform {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 160px;
+  height: 160px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 182, 193, 0.35);
+  animation: magicCircleSpin 15s linear infinite;
+}
+
+.sakura-inner-ring-platform::before {
+  content: '';
+  position: absolute;
+  inset: 20%;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  background: radial-gradient(circle, rgba(255, 182, 193, 0.1) 0%, transparent 70%);
+}
+
+.sakura-symbols-platform {
+  position: absolute;
+  inset: 0;
+  animation: magicCircleSpin 50s linear infinite reverse;
+}
+
+.sakura-symbols-platform .sakura-sun {
+  position: absolute;
+  top: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  color: rgba(255, 215, 0, 0.85);
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.7), 0 0 40px rgba(255, 215, 0, 0.3);
+}
+
+.sakura-symbols-platform .sakura-moon {
+  position: absolute;
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  color: rgba(200, 200, 255, 0.8);
+  text-shadow: 0 0 20px rgba(200, 200, 255, 0.6), 0 0 40px rgba(200, 200, 255, 0.2);
+}
+
+.sakura-symbols-platform .sakura-star-sym {
+  position: absolute;
+  top: 50%;
+  left: 5%;
+  transform: translateY(-50%);
+  font-size: 20px;
+  color: rgba(255, 182, 193, 0.8);
+  text-shadow: 0 0 15px rgba(255, 182, 193, 0.6), 0 0 30px rgba(255, 182, 193, 0.3);
+}
+
+.sakura-symbols-platform .sakura-star-sym.s2 {
+  left: auto;
+  right: 5%;
+}
+
+.sakura-cross-platform {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.sakura-cross-platform .cross-h {
+  position: absolute;
+  width: 480px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,182,193,0.2) 30%, rgba(255,182,193,0.2) 70%, transparent);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.sakura-cross-platform .cross-v {
+  position: absolute;
+  width: 1px;
+  height: 480px;
+  background: linear-gradient(180deg, transparent, rgba(255,215,0,0.2) 30%, rgba(255,215,0,0.2) 70%, transparent);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.sakura-cross-platform .cross-d1 {
+  position: absolute;
+  width: 1px;
+  height: 450px;
+  background: linear-gradient(180deg, transparent, rgba(255,182,193,0.12) 30%, rgba(255,182,193,0.12) 70%, transparent);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.sakura-cross-platform .cross-d2 {
+  position: absolute;
+  width: 1px;
+  height: 450px;
+  background: linear-gradient(180deg, transparent, rgba(255,215,0,0.12) 30%, rgba(255,215,0,0.12) 70%, transparent);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.platform-runes {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 440px;
+  height: 440px;
+  transform: translate(-50%, -50%);
+  animation: spin 60s linear infinite;
+}
+
+.platform-runes .rune-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ffb6c1;
+  box-shadow: 0 0 12px rgba(255, 182, 193, 1), 0 0 24px rgba(255, 182, 193, 0.5);
+  opacity: 0.85;
+  animation: runeDotPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes runeDotPulse {
+  0% { opacity: 0.6; box-shadow: 0 0 8px rgba(255, 182, 193, 0.8); }
+  100% { opacity: 1; box-shadow: 0 0 16px rgba(255, 182, 193, 1), 0 0 32px rgba(255, 215, 0, 0.3); }
+}
+
+@keyframes platformPulse {
+  0% { opacity: 0.7; }
+  100% { opacity: 1; box-shadow: 0 0 60px rgba(255,182,193,0.35), 0 0 100px rgba(255,215,0,0.1); }
+}
+
+
+/* ========================================
+   3D 环形旋转木马 (Carousel)
+   ======================================== */
+#carousel-stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+#carousel-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1000px;
+}
+
+#carousel {
+  position: relative;
+  width: var(--card-w);
+  height: var(--card-h);
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+.carousel-card {
+  position: absolute;
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: 8px;
+  transform-style: preserve-3d;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: filter 0.4s, opacity 0.4s;
+  will-change: transform;
+  /* Safari 3D 合成层提升 */
+  -webkit-transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.carousel-card .card-flipper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.carousel-card.flipped .card-flipper {
+  transform: rotateY(180deg);
+}
+
+.carousel-card .card-front {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  transform: rotateY(180deg);
+  display: none;
+}
+
+.carousel-card .card-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(0, 0, 0, 0.8);
+  backface-visibility: hidden;
+  background: var(--bg-card);
+}
+
+.card-back-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 正对用户的牌 — 增强发光效果 */
+.carousel-card.front-card .card-back {
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 0 25px rgba(255, 255, 255, 0.2),
+    0 0 50px rgba(212, 175, 55, 0.15),
+    0 10px 40px rgba(0,0,0,0.7);
+  /* 轻微高亮 */
+  filter: brightness(1.1);
+}
+
+/* 食指选中高亮 — 粉色光，位置不变 */
+.carousel-card.focused-card {
+  z-index: 20;
+  box-shadow: 0 0 30px var(--accent-rose), 0 0 60px rgba(232, 180, 184, 0.4);
+  filter: brightness(1.15);
+}
+
+/* 粉色发光边框 — 覆盖在整张卡牌上方 */
+.carousel-card.focused-card::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 12px;
+  border: 3px solid var(--accent-rose);
+  box-shadow:
+    0 0 20px var(--accent-rose),
+    0 0 40px rgba(232, 180, 184, 0.6),
+    inset 0 0 15px var(--accent-rose);
+  pointer-events: none;
+  z-index: 10;
+  animation: focusedPinkPulse 1.2s ease-in-out infinite alternate;
+}
+
+/* 底部粉色光晕 */
+.carousel-card.focused-card::before {
+  content: '';
+  position: absolute;
+  inset: -40px;
+  border-radius: 20px;
+  background: radial-gradient(ellipse at center,
+    rgba(232, 180, 184, 0.6) 0%,
+    rgba(232, 180, 184, 0.2) 40%,
+    transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+  animation: focusedPinkPulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes focusedPinkPulse {
+  0% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+#carousel.entering .carousel-card {
+  animation: carouselCardEnter 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes carouselCardEnter {
+  0% { opacity: 0; transform: scale(0.8) translateY(50px); }
+  100% { opacity: 1; }
+}
+
+
+/* ========================================
+   选定卡牌特效展示 (带翻转) — 名字不被遮挡
+   ======================================== */
+#card-selected-view {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  /* 用深色半透明替代 backdrop-filter blur — Safari 全屏 blur 极慢 */
+  background: rgba(3, 2, 12, 0.88);
+}
+
+.selected-magic-circle {
+  position: absolute;
+  width: min(60vw, 60vh);
+  height: min(60vw, 60vh);
+  border-radius: 50%;
+  animation: magicCircleSpin 20s linear infinite;
+  border: 1.5px solid rgba(255, 182, 193, 0.15);
+  box-shadow:
+    0 0 30px rgba(255, 182, 193, 0.06),
+    inset 0 0 40px rgba(255, 215, 0, 0.03);
+}
+
+.selected-magic-circle::before {
+  content: '';
+  position: absolute;
+  inset: 15%;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.selected-magic-circle::after {
+  content: '';
+  position: absolute;
+  inset: 30%;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 182, 193, 0.1);
+}
+
+.selected-glow {
+  position: absolute;
+  width: 300px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(212, 175, 55, 0.12) 0%, transparent 60%);
+  pointer-events: none;
+  animation: magicGlow 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes magicGlow {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.1); opacity: 1; }
+}
+
+/* 选中卡牌翻转容器 — 上移避免名字被底部元素遮挡 */
+.selected-card-wrapper {
+  position: relative;
+  width: 200px;
+  height: 340px;
+  z-index: 2;
+  perspective: 800px;
+  margin-top: -40px;
+}
+
+.selected-card-flipper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 1s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.selected-card-flipper.flipped {
+  transform: rotateY(180deg);
+}
+
+.selected-card-wrapper .flip-burst {
+  position: absolute;
+  inset: -60px;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.selected-card-wrapper .flip-burst.active {
+  animation: flipBurstAnim 1.2s ease-out forwards;
+}
+
+@keyframes flipBurstAnim {
+  0% { opacity: 0; transform: scale(0.3); }
+  15% { opacity: 1; transform: scale(1.2); }
+  40% { opacity: 0.8; transform: scale(1.0); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+.selected-card-wrapper .flip-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 9;
+  opacity: 0;
+}
+
+.selected-card-wrapper .flip-ring.active {
+  animation: flipRingExpand 0.8s ease-out forwards;
+}
+
+@keyframes flipRingExpand {
+  0% { width: 0; height: 0; opacity: 0.8; border: 3px solid var(--gold); box-shadow: 0 0 30px var(--gold-glow); }
+  100% { width: 400px; height: 400px; opacity: 0; border: 1px solid transparent; box-shadow: none; }
+}
+
+.selected-card-wrapper .flip-sparkle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 0;
+  transform-origin: center bottom;
+  pointer-events: none;
+  z-index: 11;
+  opacity: 0;
+}
+
+.selected-card-wrapper .flip-sparkle.active {
+  animation: flipSparkleShoot 0.6s ease-out forwards;
+}
+
+@keyframes flipSparkleShoot {
+  0% { height: 0; opacity: 1; }
+  50% { height: 80px; opacity: 0.8; }
+  100% { height: 120px; opacity: 0; }
+}
+
+.selected-card-front,
+.selected-card-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  backface-visibility: hidden;
+}
+
+.selected-card-back {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 30px rgba(0,0,0,0.5), 0 20px 60px rgba(0,0,0,0.8);
+  background: var(--bg-card);
+  animation: selectedCardEnter 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  overflow: hidden;
+}
+
+.selected-card-back .selected-back-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.selected-card-front {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 30px rgba(0,0,0,0.5), 0 20px 60px rgba(0,0,0,0.8);
+  background-color: var(--bg-card);
+  transform: rotateY(180deg);
+}
+
+@keyframes selectedCardEnter {
+  0% { opacity: 0; transform: scale(0.6) translateY(40px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* 卡牌名字 — 确保不被遮挡 */
+.selected-card-name {
+  margin-top: 24px;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 3px;
+  color: var(--text-primary);
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
+  z-index: 65;
+  opacity: 0;
+  transition: opacity 0.5s 0.8s;
+  position: relative;
+}
+
+.selected-card-name.show {
+  opacity: 1;
+}
+
+/* 捏合释放提示 */
+.release-hint {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  z-index: 65;
+  position: relative;
+  animation: hintBounce 1.5s ease-in-out infinite;
+}
+
+
+/* ========================================
+   占卜结果页 — 持久显示 + 精致设计
+   ======================================== */
+#tarot-result-view {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: linear-gradient(180deg, #06061a 0%, #0c0a22 40%, #080818 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+}
+
+.result-scroll-container {
+  width: 100%;
+  max-width: 760px;
+  padding: 32px 28px 80px;
+  overflow-y: auto;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.result-scroll-container::-webkit-scrollbar {
+  width: 3px;
+}
+
+.result-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 4px;
+}
+
+/* 结果页标题 */
+.result-header {
+  text-align: center;
+  margin-bottom: 40px;
+  animation: resultFadeIn 1s ease forwards;
+}
+
+.result-title {
+  font-size: 26px;
+  font-weight: 300;
+  color: var(--text-primary);
+  letter-spacing: 8px;
+  margin-bottom: 12px;
+}
+
+.result-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 3px;
+  font-weight: 300;
+}
+
+@keyframes resultFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 三张牌居中大图截图区 */
+.result-showcase {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 40px;
+  padding: 24px 0 28px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%);
+  border-radius: 16px;
+  animation: resultFadeIn 0.8s ease forwards;
+}
+
+.showcase-question {
+  font-size: 15px;
+  color: var(--accent-lavender);
+  margin-bottom: 24px;
+  letter-spacing: 1px;
+  font-style: italic;
+  font-weight: 300;
+}
+
+.showcase-row {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: nowrap;
+}
+
+.showcase-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: resultCardEnter 0.8s ease backwards;
+}
+
+.showcase-card .showcase-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 4px;
+  margin-bottom: 14px;
+  font-weight: 400;
+}
+
+.showcase-card img {
+  width: 220px;
+  height: 374px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+.showcase-card .showcase-name {
+  margin-top: 16px;
+  font-size: 16px;
+  color: var(--text-primary);
+  letter-spacing: 3px;
+  font-weight: 400;
+}
+
+/* 三张牌展示 */
+.result-cards {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+  margin-bottom: 48px;
+}
+
+.result-card-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 200px;
+  flex-shrink: 0;
+  animation: resultCardEnter 0.8s ease backwards;
+}
+
+@keyframes resultCardEnter {
+  from { opacity: 0; transform: translateY(30px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.result-card-item .rc-position {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  letter-spacing: 4px;
+  font-weight: 400;
+}
+
+.result-card-item .rc-card {
+  width: 130px;
+  height: 221px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: var(--bg-card);
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  transition: transform 0.3s;
+}
+
+.result-card-item .rc-name {
+  margin-top: 14px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: 1px;
+}
+
+.result-card-item .rc-name-en {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  font-family: 'Georgia', serif;
+}
+
+.result-card-item .rc-interpretation {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.9;
+  padding: 0 4px;
+  font-weight: 300;
+}
+
+/* 结果段落区块 — 精致卡片风格（移除 backdrop-filter 提升滚动流畅度） */
+.result-section {
+  width: 100%;
+  padding: 28px;
+  margin-bottom: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  animation: resultFadeIn 0.8s ease backwards;
+}
+
+.result-section:nth-child(5) { animation-delay: 0.6s; }
+.result-section:nth-child(6) { animation-delay: 0.8s; }
+.result-section:nth-child(7) { animation-delay: 1.0s; }
+
+.result-section .section-icon {
+  font-size: 18px;
+  color: var(--accent-lavender);
+  text-align: center;
+  margin-bottom: 10px;
+  opacity: 0.7;
+}
+
+.result-section .section-title {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text-primary);
+  text-align: center;
+  letter-spacing: 3px;
+  margin-bottom: 18px;
+}
+
+.result-section .section-content {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 2;
+  text-align: center;
+  font-weight: 300;
+}
+
+.result-section .section-content p {
+  margin: 0 0 16px;
+}
+
+.result-section .section-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* 行动建议列表 */
+.advice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.advice-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  border-left: 2px solid rgba(184, 169, 201, 0.3);
+  font-weight: 300;
+}
+
+.advice-bullet {
+  color: var(--accent-lavender);
+  font-size: 18px;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+/* 智慧提示 */
+.result-wisdom {
+  width: 100%;
+  text-align: center;
+  padding: 24px 20px;
+  margin: 16px 0 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  animation: resultFadeIn 1s ease 1.2s backwards;
+}
+
+.wisdom-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+  font-weight: 300;
+}
+
+/* 重新占卜按钮 — 精致风格 */
+#btn-restart-reading {
+  margin-top: 8px;
+  margin-bottom: 48px;
+  padding: 14px 44px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+  font-size: 15px;
+  letter-spacing: 3px;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.3s;
+  animation: resultFadeIn 0.8s ease 1.4s backwards;
+  font-weight: 300;
+}
+
+#btn-restart-reading:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.06);
+}
+
+
+/* ===== 特效层 — GPU 加速 ===== */
+#fx-canvas, #particle-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 85;
+  will-change: contents;
+  transform: translateZ(0);
+}
+
+#particle-canvas {
+  z-index: 45;
+}
+
+/* ===== 全屏魔法释放特效覆盖层 ===== */
+.spell-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 90;
+  pointer-events: none;
+  animation: spellOverlayFade 4s ease-in-out forwards;
+}
+
+.spell-overlay .spell-name {
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: 8px;
+  color: inherit;
+  text-shadow: 0 0 40px currentColor, 0 0 80px currentColor;
+  animation: spellNameAppear 1.5s ease-out forwards;
+  opacity: 0;
+}
+
+.spell-overlay .spell-subtitle {
+  font-size: 16px;
+  font-family: serif;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.6);
+  margin-top: 12px;
+  animation: spellNameAppear 1.5s ease-out 0.3s forwards;
+  opacity: 0;
+}
+
+@keyframes spellOverlayFade {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes spellNameAppear {
+  0% { opacity: 0; transform: translateY(20px) scale(0.8); }
+  50% { opacity: 1; transform: translateY(0) scale(1.05); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ===== 调试面板 ===== */
+#debug-panel {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  width: 330px;
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 300;
+}
+
+.debug-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.debug-header button {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#debug-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+#debug-info {
+  padding: 8px 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  font-size: 12px;
+  color: #aaa;
+}
+
+#debug-info span {
+  color: var(--cyan);
+  font-family: monospace;
+}
+
+/* ===== 底部工具栏 ===== */
+#toolbar {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 150;
+}
+
+#toolbar button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.7);
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+#toolbar button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-secondary);
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 600px) {
+  :root {
+    --card-w: 100px;
+    --card-h: 170px;
+  }
+  #tarot-collection {
+    gap: 10px;
+    top: 28px;
+  }
+  .collection-slot {
+    width: 42px;
+    height: 64px;
+  }
+  #gesture-hint {
+    bottom: 36px;
+    padding: 8px 16px;
+  }
+  #gesture-hint .hint-text {
+    font-size: 12px;
+  }
+  #platform-3d {
+    width: 360px;
+    height: 160px;
+  }
+  .sakura-ring-outer { width: 300px !important; height: 300px !important; }
+  .sakura-ring-mid { width: 220px !important; height: 220px !important; }
+  .sakura-ring-inner { width: 140px !important; height: 140px !important; }
+  .sakura-cross-platform .cross-h { width: 280px !important; }
+  .sakura-cross-platform .cross-v { height: 280px !important; }
+  .sakura-cross-platform .cross-d1,
+  .sakura-cross-platform .cross-d2 { height: 260px !important; }
+  .platform-runes { width: 260px !important; height: 260px !important; }
+  .platform-glow-surface { width: 320px !important; height: 320px !important; }
+  .platform-sakura-circle { width: 300px !important; height: 300px !important; }
+
+  .result-cards {
+    gap: 12px;
+  }
+  .result-card-item {
+    width: 160px;
+  }
+  .result-card-item .rc-card {
+    width: 100px;
+    height: 170px;
+  }
+  .showcase-card img {
+    width: 100px;
+    height: 170px;
+  }
+  .showcase-row {
+    gap: 10px;
+  }
+  .showcase-card .showcase-name {
+    font-size: 12px;
+  }
+  #question-panel {
+    padding: 24px 20px;
+  }
+  .question-title {
+    font-size: 16px;
+  }
+}

@@ -1,0 +1,25 @@
+# 系统文件
+.DS_Store
+**/.DS_Store
+
+# 开发/工具文件
+.workbuddy/
+node_modules/
+CHANGELOG_SYNC.md
+replace_footer.py
+fix_index.py
+update_footer.py
+PROJECT-INFO.md
+
+# 源文件目录（已复制到 sakura/ 子目录）
+0327小樱/
+
+# 废弃的旧版资源（新版使用 塔罗牌完整/）
+tarot/老板保底三连抽/
+
+# 临时生成的文件
+generated-images/
+
+# 压缩包
+*.zip
+*.qmc3

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>塔罗牌手势占卜系统</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 加载画面 -->
+  <div id="loading-screen">
+    <div class="magic-circle-loader">
+      <div class="circle outer"></div>
+      <div class="circle inner"></div>
+      <div class="star">✦</div>
+    </div>
+    <p class="loading-text">正在唤醒塔罗牌灵…</p>
+    <p class="loading-sub" id="loading-status">初始化中</p>
+  </div>
+
+  <!-- 占卜提问面板（独立于 #app，加载完成后显示） -->
+  <div id="question-panel" class="hidden">
+    <div class="question-title">✦ 在开始之前 ✦</div>
+    <div class="question-desc">塔罗牌回应的是你内心的声音。<br>请闭上眼睛，在心中默念你最想问的问题。<br>问题越具体，牌的指引越清晰。</div>
+    <div class="question-examples">例如：我该不该换工作？· 这段感情的走向？· 下一步该怎么走？</div>
+    <button id="btn-silent-start" class="question-silent-btn">🙏 我已默念完毕，开始占卜</button>
+  </div>
+
+  <!-- 主界面 -->
+  <div id="app" class="hidden">
+    <!-- 星空背景画布 -->
+    <canvas id="starfield-canvas"></canvas>
+
+    <!-- 摄像头画面（隐藏，仅用于手势识别） -->
+    <video id="camera" autoplay playsinline muted></video>
+    <canvas id="camera-overlay"></canvas>
+
+    <!-- 手势提示（初始隐藏，提问后显示） -->
+    <div id="gesture-hint" class="hidden">
+      <div class="hint-icon">✊</div>
+      <div class="hint-text">握拳开始仪式</div>
+    </div>
+
+    <!-- 状态标签（初始隐藏） -->
+    <div id="state-badge" class="hidden">塔罗占卜</div>
+
+    <!-- 塔罗牌占卜收集区域（初始隐藏） -->
+    <div id="tarot-collection" class="hidden">
+      <div class="collection-slot" id="slot-0">
+        <div class="slot-label">过去</div>
+        <div class="slot-content"></div>
+      </div>
+      <div class="collection-slot" id="slot-1">
+        <div class="slot-label">现在</div>
+        <div class="slot-content"></div>
+      </div>
+      <div class="collection-slot" id="slot-2">
+        <div class="slot-label">未来</div>
+        <div class="slot-content"></div>
+      </div>
+    </div>
+
+    <!-- 中间魔法阵已移除，仅保留底部3D底盘 -->
+    <!--
+    <div id="magic-circle-bg" class="hidden">
+      ...
+    </div>
+    -->
+
+    <!-- 3D 立体底盘 — 小樱魔法阵风格 -->
+    <div id="platform-3d" class="hidden">
+      <div class="platform-layers">
+        <div class="platform-glow-surface"></div>
+        <!-- 小樱魔法阵 -->
+        <div class="platform-sakura-circle">
+          <div class="sakura-ring sakura-ring-outer"></div>
+          <div class="sakura-ring sakura-ring-mid"></div>
+          <div class="sakura-ring sakura-ring-inner"></div>
+          <div class="sakura-star-12-platform"></div>
+          <div class="sakura-inner-ring-platform"></div>
+          <div class="sakura-symbols-platform">
+            <span class="sakura-sun">☀</span>
+            <span class="sakura-moon">☽</span>
+            <span class="sakura-star-sym">★</span>
+            <span class="sakura-star-sym s2">★</span>
+          </div>
+          <div class="sakura-cross-platform">
+            <div class="cross-h"></div>
+            <div class="cross-v"></div>
+            <div class="cross-d1"></div>
+            <div class="cross-d2"></div>
+          </div>
+          <div class="platform-runes" id="platform-runes">
+            <!-- JS 生成符文点 -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3D 环形旋转木马 -->
+    <div id="carousel-stage" class="hidden">
+      <div id="carousel-wrapper">
+        <div id="carousel">
+          <!-- 塔罗牌环由 JS 动态生成 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 选定卡牌特效展示（带翻转） -->
+    <div id="card-selected-view" class="hidden">
+      <div class="selected-magic-circle"></div>
+      <div class="selected-glow" id="selected-glow"></div>
+      <div class="selected-card-wrapper">
+        <div class="flip-burst" id="flip-burst"></div>
+        <div class="flip-ring" id="flip-ring"></div>
+        <div class="selected-card-flipper" id="selected-card-flipper">
+          <div class="selected-card-back" id="selected-card-back">
+            <img class="selected-back-img" src="塔罗牌背面/1.jpg" alt="牌背">
+          </div>
+          <div class="selected-card-front" id="selected-card-front"></div>
+        </div>
+      </div>
+      <div class="selected-card-name" id="selected-card-name"></div>
+      <div class="release-hint" id="release-hint">🖐️ 张开手掌释放卡牌</div>
+    </div>
+
+    <!-- 占卜结果展示 -->
+    <div id="tarot-result-view" class="hidden">
+      <div class="result-scroll-container">
+        <!-- 结果页标题 -->
+        <div class="result-header">
+          <div class="result-title">命运的轨迹已然显现</div>
+          <div class="result-subtitle">星辰与卡牌的共鸣</div>
+        </div>
+
+        <!-- 三张牌居中大图（方便截图） -->
+        <div class="result-showcase" id="result-showcase"></div>
+
+        <!-- 三张牌展示 + 解读 (这里注释掉解读详细内容，避免多余渲染) -->
+        <!-- <div class="result-cards" id="result-cards"></div> -->
+
+        <!-- 综合解读（整体流动 + 元素共鸣 合并） -->
+        <div class="result-section hidden" id="result-insight" style="display: none;">
+          <div class="section-icon">✦</div>
+          <div class="section-title">综合解读</div>
+          <div class="section-content" id="result-insight-text"></div>
+        </div>
+
+        <!-- 行动建议 -->
+        <div class="result-section hidden" id="result-advice-section" style="display: none;">
+          <div class="section-icon">◇</div>
+          <div class="section-title">行动指引</div>
+          <div class="advice-list" id="result-advice-list"></div>
+        </div>
+
+        <!-- 智慧提示 -->
+        <div class="result-wisdom" id="result-wisdom">
+          <div class="wisdom-text" id="result-wisdom-text"></div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <button id="btn-restart-reading">重新占卜</button>
+      </div>
+    </div>
+
+    <!-- 魔法特效层 -->
+    <canvas id="fx-canvas"></canvas>
+
+    <!-- 粒子特效层 -->
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- 调试面板 -->
+    <div id="debug-panel" class="hidden">
+      <div class="debug-header">
+        <span>🔍 调试面板</span>
+        <button id="debug-close">✕</button>
+      </div>
+      <canvas id="debug-canvas" width="320" height="240"></canvas>
+      <div id="debug-info">
+        <div>手势: <span id="dbg-gesture">无</span></div>
+        <div>状态: <span id="dbg-state">idle</span></div>
+        <div>手数: <span id="dbg-hands">0</span></div>
+        <div>FPS: <span id="dbg-fps">0</span></div>
+        <div>置信度: <span id="dbg-confidence">0</span></div>
+      </div>
+    </div>
+
+    <!-- 底部工具栏 -->
+    <div id="toolbar">
+      <button id="btn-debug" title="调试面板">🔍</button>
+      <button id="btn-mirror" title="镜像翻转">🪞</button>
+    </div>
+  </div>
+
+  <!-- 脚本 -->
+  <script src="cards.js"></script>
+  <script src="readings.js"></script>
+  <script src="gestures.js"></script>
+  <script src="effects.js"></script>
+  <script src="app.js"></script>
+  <script type="module" src="bootstrap.js"></script>
+</body>
+</html>
