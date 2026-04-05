@@ -11,7 +11,7 @@ console.log("CY Works - Elegant Rose Gold Theme Loaded");
       tags: ['H5 游戏', '手势识别', 'Camera'],
       tech: ['JavaScript', 'MediaPipe', 'Canvas 2D', 'CSS 3D Transforms', 'Web Audio API'],
       type: 'h5',
-      demoUrl: 'sakura/magic-sakura-tarot.html',
+      demoUrl: 'sakura/index.html',
       screenshot: 'screenshots/sakura-showcase.png',
       features: [
         '实时手势识别（握拳、张掌、食指、双指等）',
