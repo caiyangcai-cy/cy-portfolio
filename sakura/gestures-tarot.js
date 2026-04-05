@@ -420,10 +420,12 @@ class GestureEngine {
     const thumbIP = hand[3];
     const thumb = Math.abs(thumbTip.x - wrist.x) > Math.abs(thumbIP.x - wrist.x);
 
-    const index = hand[8].y < hand[6].y;
-    const middle = hand[12].y < hand[10].y;
-    const ring = hand[16].y < hand[14].y;
-    const pinky = hand[20].y < hand[18].y;
+    // 添加 0.02 的容差，指尖必须明显高于 PIP 关节才判定为伸直
+    // 这能有效解决比 ✌🏻 时，无名指/小指没有完全攥紧导致误判的问题
+    const index = hand[8].y < hand[6].y - 0.02;
+    const middle = hand[12].y < hand[10].y - 0.02;
+    const ring = hand[16].y < hand[14].y - 0.02;
+    const pinky = hand[20].y < hand[18].y - 0.02;
 
     return { thumb, index, middle, ring, pinky };
   }
