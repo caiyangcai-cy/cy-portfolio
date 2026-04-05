@@ -7,32 +7,34 @@ console.log("CY Works - Elegant Rose Gold Theme Loaded");
   var PROJECTS = {
     sakura: {
       title: '百变小樱魔法卡',
-      desc: '打开摄像头，用手势隔空召唤小樱的魔法阵。握拳召唤卡牌堆，张掌展开 3D 旋转牌阵，左右滑动浏览，食指选牌，双指翻牌 —— 你的手就是魔杖。',
-      tags: ['H5 游戏', '手势互动'],
+      desc: '一个能用手势施魔法的网页游戏，摄像头就是你的魔杖。张开手掌召唤卡牌环，食指选定卡牌，双指释放魔法特效。基于 MediaPipe 手势识别，配合 Canvas 粒子系统和 CSS 3D 变换打造沉浸式互动。',
+      tags: ['H5 游戏', '手势识别', 'Camera'],
       tech: ['JavaScript', 'MediaPipe', 'Canvas 2D', 'CSS 3D Transforms', 'Web Audio API'],
       type: 'h5',
       demoUrl: 'sakura/magic-sakura-tarot.html',
       screenshot: 'screenshots/sakura-showcase.png',
       features: [
-        '摄像头实时手势识别',
-        '隔空手势召唤、翻阅、选定卡牌'
+        '实时手势识别（握拳、张掌、食指、双指等）',
+        '3D 旋转卡牌木马',
+        '魔法阵 SVG 动效',
+        '粒子特效系统',
+        '3D 卡牌翻转展示'
       ]
     },
     tarot: {
       title: '塔罗牌占卜',
-      desc: '完整 78 张韦特塔罗手势占卜系统。心中默念问题，握拳唤醒牌灵，张掌展开 3D 环形牌阵，食指选牌，捏合翻牌，松手释放 —— 完成过去·现在·未来三牌阵占卜，星空粒子、魔法阵底盘、翻牌特效，每一步都充满仪式感。',
-      tags: ['H5 游戏', '手势互动', '占卜'],
-      tech: ['JavaScript', 'MediaPipe', 'Canvas 粒子', 'CSS 3D', '状态机', 'Web Audio API'],
+      desc: '用手势隔空抽牌，看看今日运势。握拳开始仪式，张掌召唤牌阵，食指选牌，完成过去-现在-未来三张牌的解读。星空粒子、魔法阵底盘、翻牌特效，每一步都充满仪式感。',
+      tags: ['H5 游戏', '手势识别', '占卜'],
+      tech: ['JavaScript', 'MediaPipe', 'Canvas 粒子', 'CSS 3D', '状态机'],
       type: 'h5',
       demoUrl: 'tarot/index.html',
       screenshot: 'screenshots/tarot-showcase.png',
       features: [
-        '完整 78 张韦特塔罗（22大牌 + 56小牌）',
-        '摄像头实时手势识别',
-        '隔空手势抽牌、翻牌、占卜解读',
-        '占卜提问仪式引导',
-        '星空背景 + 3D 魔法阵底盘',
-        'Safari/Chrome 双端流畅优化'
+        '三牌阵传统塔罗布局',
+        '手势仪式化交互流程',
+        '星空粒子背景',
+        '3D 底盘魔法阵',
+        '综合解读 + 行动指引'
       ]
     },
     miniapp: {
