@@ -203,10 +203,17 @@ class CardCarousel {
     });
   }
 
+  /**
+   * 原始步进索引（与 currentAngle 一致，未取模），用于轮环上物理槽位与 78 张牌的对应关系。
+   * 若仅用「逻辑牌序 % 78」再 % 10 计算槽位，会错（例如步进 78 与 0 逻辑同为 0，但槽位应为 8 而非 0）。
+   */
+  getRawIndex() {
+    return Math.round(-this.currentAngle / this.anglePerCard);
+  }
+
   getCurrentIndex() {
-    let idx = Math.round(-this.currentAngle / this.anglePerCard);
-    idx = ((idx % this.totalCards) + this.totalCards) % this.totalCards;
-    return idx;
+    const idx = this.getRawIndex();
+    return ((idx % this.totalCards) + this.totalCards) % this.totalCards;
   }
 
   getCurrentCard() {
@@ -277,8 +284,8 @@ class CardCarousel {
   }
 
   _updateFrontCard() {
-    const idx = this.getCurrentIndex();
-    const frontRingIndex = ((idx % this.ringSize) + this.ringSize) % this.ringSize;
+    const raw = this.getRawIndex();
+    const frontRingIndex = ((raw % this.ringSize) + this.ringSize) % this.ringSize;
 
     this.cards.forEach((card, i) => {
       card.classList.toggle('front-card', i === frontRingIndex);
@@ -286,18 +293,11 @@ class CardCarousel {
   }
 
   _updateData() {
-    const centerIdx = this.getCurrentIndex();
+    const logicalCenter = this.getCurrentIndex();
+    const frontRing = ((this.getRawIndex() % this.ringSize) + this.ringSize) % this.ringSize;
 
     for (let i = 0; i < this.ringSize; i++) {
-      let logicalIndex = centerIdx + (i - (centerIdx % this.ringSize));
-
-      if (logicalIndex > centerIdx + Math.floor(this.ringSize / 2)) {
-        logicalIndex -= this.ringSize;
-      }
-      if (logicalIndex < centerIdx - Math.floor(this.ringSize / 2)) {
-        logicalIndex += this.ringSize;
-      }
-
+      let logicalIndex = logicalCenter + (i - frontRing);
       logicalIndex = ((logicalIndex % this.totalCards) + this.totalCards) % this.totalCards;
 
       const el = this.cards[i];
@@ -307,15 +307,15 @@ class CardCarousel {
   }
 
   flipFrontCard() {
-    const idx = this.getCurrentIndex();
-    const frontRingIndex = ((idx % this.ringSize) + this.ringSize) % this.ringSize;
+    const raw = this.getRawIndex();
+    const frontRingIndex = ((raw % this.ringSize) + this.ringSize) % this.ringSize;
     const el = this.cards[frontRingIndex];
     el.classList.add('flipped');
   }
 
   setFocused(focused) {
-    const idx = this.getCurrentIndex();
-    const frontRingIndex = ((idx % this.ringSize) + this.ringSize) % this.ringSize;
+    const raw = this.getRawIndex();
+    const frontRingIndex = ((raw % this.ringSize) + this.ringSize) % this.ringSize;
 
     this.cards.forEach(card => card.classList.remove('focused-card'));
 

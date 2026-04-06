@@ -399,6 +399,8 @@ class App {
    * 注意：已收集的牌不会出现在正面位置（由 _skipCollected 保证）
    */
   _focusCard() {
+    // 每次锁定前先跳过已抽中的牌，避免竞态或边界情况下仍停在重复牌上
+    this._skipCollected();
     const card = this.carousel.getCurrentCard();
 
     this.state = STATE.FOCUSED;
@@ -434,8 +436,18 @@ class App {
    * 捏合确认 — 进入 HOLDING 状态，展示翻转
    */
   _holdCard() {
-    // 使用 FOCUSED 状态锁定的牌
-    const card = this._focusedCard || this.carousel.getCurrentCard();
+    const collectedIds = new Set(this.collectedCards.map(c => c.id));
+    let card = this._focusedCard || this.carousel.getCurrentCard();
+    if (collectedIds.has(card.id)) {
+      this._skipCollected();
+      card = this.carousel.getCurrentCard();
+      let attempts = 0;
+      while (collectedIds.has(card.id) && attempts < CARDS.length) {
+        this.carousel.rotateTo(this.carousel.getRawIndex() + 1, false);
+        card = this.carousel.getCurrentCard();
+        attempts++;
+      }
+    }
 
     this.state = STATE.HOLDING;
     this._holdingCard = card;
@@ -546,6 +558,9 @@ class App {
    * 收入槽位
    */
   _collectCard(card) {
+    if (this.collectedCards.some((c) => c.id === card.id)) {
+      return;
+    }
     const slotIndex = this.collectedCards.length;
     this.collectedCards.push(card);
 
@@ -673,7 +688,8 @@ class App {
 
     // 最多尝试总牌数次，避免死循环
     while (collectedIds.has(card.id) && attempts < CARDS.length) {
-      this.carousel.rotateTo(this.carousel.getCurrentIndex() + 1, false);
+      // 必须用原始步进 +1：若用逻辑牌序 +1，在已转过多圈时会把角度重置到错误相位，仍可能停在已抽过的牌上
+      this.carousel.rotateTo(this.carousel.getRawIndex() + 1, false);
       card = this.carousel.getCurrentCard();
       attempts++;
     }
