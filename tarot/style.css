@@ -56,6 +56,337 @@ html, body {
 
 .hidden { display: none !important; }
 
+/* ========================================
+   ✦ 开场欢迎页 — 魔法球/灵珠风格
+   ======================================== */
+#welcome-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, #0d0a2a 0%, #050510 60%, #020208 100%);
+  z-index: 10000;
+  overflow: hidden;
+}
+
+/* 背景微粒感 */
+.welcome-stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 30% 70%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 70% 50%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 15% 85%, rgba(232,180,184,0.6), transparent),
+    radial-gradient(1.5px 1.5px at 85% 25%, rgba(184,169,201,0.5), transparent);
+  animation: welcomeStarsTwinkle 4s ease-in-out infinite alternate;
+}
+
+@keyframes welcomeStarsTwinkle {
+  0% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* === 魔法球容器 === */
+.crystal-ball-wrapper {
+  position: relative;
+  width: 240px;
+  height: 300px;
+  margin-bottom: 36px;
+  animation: crystalFloat 4s ease-in-out infinite;
+}
+
+@keyframes crystalFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* 球体 */
+.crystal-ball {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(200, 180, 230, 0.15) 0%,
+    rgba(100, 70, 160, 0.08) 30%,
+    rgba(30, 20, 60, 0.6) 60%,
+    rgba(10, 5, 30, 0.85) 100%
+  );
+  border: 1.5px solid rgba(200, 180, 240, 0.25);
+  box-shadow:
+    0 0 60px rgba(180, 140, 220, 0.25),
+    0 0 120px rgba(140, 100, 200, 0.15),
+    inset 0 0 60px rgba(160, 120, 210, 0.1),
+    inset 0 -20px 40px rgba(100, 60, 160, 0.15);
+  overflow: hidden;
+}
+
+/* 内部柔光 */
+.crystal-glow {
+  position: absolute;
+  inset: 20%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    rgba(200, 170, 255, 0.35) 0%,
+    rgba(180, 140, 230, 0.15) 40%,
+    transparent 70%
+  );
+  animation: crystalGlowPulse 3s ease-in-out infinite;
+}
+
+@keyframes crystalGlowPulse {
+  0%, 100% { opacity: 0.6; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* 烟雾/灵气 */
+.crystal-mist {
+  position: absolute;
+  inset: 15%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 40% 50%,
+    rgba(232, 180, 184, 0.3) 0%,
+    rgba(184, 169, 201, 0.15) 40%,
+    transparent 70%
+  );
+  animation: crystalMistDrift 6s ease-in-out infinite;
+  filter: blur(8px);
+}
+
+.crystal-mist.mist-2 {
+  background: radial-gradient(
+    ellipse at 60% 40%,
+    rgba(168, 200, 216, 0.25) 0%,
+    rgba(212, 175, 55, 0.1) 40%,
+    transparent 70%
+  );
+  animation: crystalMistDrift2 8s ease-in-out infinite;
+}
+
+@keyframes crystalMistDrift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.5; }
+  33% { transform: translate(10px, -8px) rotate(20deg); opacity: 0.8; }
+  66% { transform: translate(-8px, 5px) rotate(-15deg); opacity: 0.6; }
+}
+
+@keyframes crystalMistDrift2 {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.4; }
+  50% { transform: translate(-12px, -6px) rotate(-25deg); opacity: 0.7; }
+}
+
+/* 球内星火 */
+.crystal-sparkle {
+  position: absolute;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 0 6px currentColor;
+  animation: sparkleFloat 4s ease-in-out infinite;
+}
+
+.crystal-sparkle.s1 {
+  top: 25%; left: 30%;
+  color: rgba(232, 180, 184, 0.8);
+  animation-delay: 0s;
+}
+.crystal-sparkle.s2 {
+  top: 45%; left: 60%;
+  color: rgba(212, 175, 55, 0.7);
+  font-size: 10px;
+  animation-delay: 1s;
+}
+.crystal-sparkle.s3 {
+  top: 60%; left: 35%;
+  color: rgba(184, 169, 201, 0.8);
+  font-size: 14px;
+  animation-delay: 2s;
+}
+.crystal-sparkle.s4 {
+  top: 35%; left: 55%;
+  color: rgba(168, 200, 216, 0.7);
+  font-size: 8px;
+  animation-delay: 0.5s;
+}
+
+@keyframes sparkleFloat {
+  0%, 100% { opacity: 0.3; transform: translate(0, 0) scale(0.8); }
+  50% { opacity: 1; transform: translate(3px, -5px) scale(1.2); }
+}
+
+/* 高光 */
+.crystal-highlight {
+  position: absolute;
+  top: 12%;
+  left: 22%;
+  width: 50px;
+  height: 30px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.35) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 70%
+  );
+  transform: rotate(-30deg);
+}
+
+/* 球体外圈光环 */
+.crystal-ring {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: 1px solid rgba(200, 180, 240, 0.15);
+  box-shadow: 0 0 30px rgba(180, 140, 220, 0.1);
+  animation: crystalRingSpin 15s linear infinite;
+}
+
+@keyframes crystalRingSpin {
+  to { transform: translateX(-50%) rotate(360deg); }
+}
+
+/* 底座 */
+.crystal-base {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 130px;
+  height: 50px;
+  background: linear-gradient(180deg,
+    rgba(60, 40, 90, 0.6) 0%,
+    rgba(30, 20, 50, 0.8) 50%,
+    rgba(15, 10, 30, 0.9) 100%
+  );
+  border-radius: 50% / 40%;
+  border: 1px solid rgba(200, 180, 240, 0.15);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.5),
+    inset 0 2px 10px rgba(180, 140, 220, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.base-rune {
+  font-size: 16px;
+  color: rgba(212, 175, 55, 0.5);
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+  animation: baseRunePulse 2s ease-in-out infinite;
+}
+
+@keyframes baseRunePulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* === 标题 === */
+.welcome-title {
+  font-size: 36px;
+  font-weight: 300;
+  color: var(--text-primary);
+  letter-spacing: 14px;
+  margin-bottom: 12px;
+  text-shadow: 0 0 20px rgba(180, 140, 220, 0.3), 0 0 40px rgba(180, 140, 220, 0.1);
+  animation: welcomeFadeUp 1s ease 0.3s both;
+}
+
+.welcome-subtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+  letter-spacing: 4px;
+  font-weight: 300;
+  margin-bottom: 48px;
+  animation: welcomeFadeUp 1s ease 0.6s both;
+}
+
+@keyframes welcomeFadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* === 开始按钮 === */
+.welcome-start-btn {
+  position: relative;
+  padding: 16px 48px;
+  border: 2px solid rgba(180, 140, 220, 0.5);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 18px;
+  letter-spacing: 6px;
+  border-radius: 50px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  animation: welcomeFadeUp 1s ease 0.9s both;
+}
+
+.welcome-start-btn:hover {
+  background: rgba(180, 140, 220, 0.1);
+  border-color: rgba(200, 170, 255, 0.6);
+  box-shadow:
+    0 0 30px rgba(180, 140, 220, 0.3),
+    0 0 60px rgba(180, 140, 220, 0.15);
+  transform: translateY(-2px);
+}
+
+.welcome-start-btn:active {
+  transform: scale(0.97);
+}
+
+.welcome-start-btn .btn-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50px;
+  background: linear-gradient(45deg,
+    transparent 30%,
+    rgba(180, 140, 220, 0.3) 50%,
+    transparent 70%);
+  animation: btnGlowSweep 3s ease-in-out infinite;
+}
+
+@keyframes btnGlowSweep {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.welcome-start-btn .btn-text {
+  position: relative;
+  z-index: 1;
+}
+
+.welcome-hint {
+  margin-top: 20px;
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  animation: welcomeFadeUp 1s ease 1.2s both;
+}
+
+/* 欢迎页淡出动画 */
+#welcome-screen.fading-out {
+  animation: welcomeFadeOut 0.8s ease forwards;
+}
+
+@keyframes welcomeFadeOut {
+  0% { opacity: 1; }
+  100% { opacity: 0; pointer-events: none; }
+}
+
 /* ===== 加载画面 ===== */
 #loading-screen {
   position: fixed;

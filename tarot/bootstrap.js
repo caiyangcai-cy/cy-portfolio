@@ -102,24 +102,73 @@ async function loadMediaPipe() {
       return;
     }
 
-    setStatus('正在连接灵能核心…');
-    try {
-      const { FilesetResolver, HandLandmarker } = await loadMediaPipe();
-      window.FilesetResolver = FilesetResolver;
-      window.HandLandmarker = HandLandmarker;
-    } catch (mpErr) {
-      console.error('MediaPipe 加载失败:', mpErr);
-      setStatus('⚠️ 模型加载失败，尝试继续…');
+    // ====== 第一阶段：显示欢迎页，等待用户点击 ======
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const startBtn = document.getElementById('btn-start-ritual');
+
+    // 在后台预加载 MediaPipe（不请求摄像头）
+    let mediaPipeLoaded = false;
+    const preloadPromise = (async () => {
+      try {
+        const { FilesetResolver, HandLandmarker } = await loadMediaPipe();
+        window.FilesetResolver = FilesetResolver;
+        window.HandLandmarker = HandLandmarker;
+        mediaPipeLoaded = true;
+      } catch (mpErr) {
+        console.warn('MediaPipe 预加载失败，将在点击后重试:', mpErr);
+      }
+    })();
+
+    // 等待用户点击「开启占卜仪式」
+    await new Promise(resolve => {
+      const handler = (e) => {
+        e.preventDefault();
+        startBtn.removeEventListener('click', handler);
+        startBtn.removeEventListener('touchend', handler);
+        resolve();
+      };
+      startBtn.addEventListener('click', handler);
+      startBtn.addEventListener('touchend', handler);
+    });
+
+    // ====== 第二阶段：淡出欢迎页，显示加载画面 ======
+    welcomeScreen.classList.add('fading-out');
+
+    const loadingScreen = document.getElementById('loading-screen');
+    loadingScreen.classList.remove('hidden');
+    loadingScreen.style.display = '';
+
+    setTimeout(() => {
+      welcomeScreen.style.display = 'none';
+    }, 800);
+
+    // 确保 MediaPipe 已加载
+    if (!mediaPipeLoaded) {
+      setStatus('正在连接灵能核心…');
+      try {
+        const { FilesetResolver, HandLandmarker } = await loadMediaPipe();
+        window.FilesetResolver = FilesetResolver;
+        window.HandLandmarker = HandLandmarker;
+      } catch (mpErr) {
+        console.error('MediaPipe 加载失败:', mpErr);
+        setStatus('⚠️ 模型加载失败，尝试继续…');
+      }
+    } else {
+      // 预加载已完成，等它彻底 resolve
+      await preloadPromise;
     }
 
-    // 无论 MediaPipe 是否加载成功，都启动应用（提问面板和按钮必须出来）
+    // ====== 第三阶段：启动应用 + 请求摄像头 ======
     const app = new App();
     await app.boot();
   } catch (err) {
     console.error('启动失败:', err);
     setStatus('⚠️ 启动失败: ' + err.message);
 
-    // 即使完全失败也尝试显示提问面板
+    // 隐藏欢迎页和加载页
+    const welcomeScreen = document.getElementById('welcome-screen');
+    if (welcomeScreen) welcomeScreen.style.display = 'none';
+
     const loading = document.getElementById('loading-screen');
     if (loading) {
       loading.style.display = 'none';
@@ -137,7 +186,7 @@ async function loadMediaPipe() {
     }
 
     // 显示重试按钮
-    if (loading && !document.getElementById('btn-bootstrap-retry')) {
+    if (!document.getElementById('btn-bootstrap-retry')) {
       const btn = document.createElement('button');
       btn.id = 'btn-bootstrap-retry';
       btn.type = 'button';

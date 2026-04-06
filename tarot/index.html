@@ -3,12 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>塔罗牌手势占卜系统</title>
+  <title>心灵塔罗牌</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- 加载画面 -->
-  <div id="loading-screen">
+  <!-- ✦ 开场欢迎页 — 魔法球/灵珠风格 ✦ -->
+  <div id="welcome-screen">
+    <!-- 背景星空粒子（纯 CSS） -->
+    <div class="welcome-stars"></div>
+
+    <!-- 魔法球 -->
+    <div class="crystal-ball-wrapper">
+      <!-- 底座 -->
+      <div class="crystal-base">
+        <div class="base-rune">✦</div>
+      </div>
+      <!-- 球体 -->
+      <div class="crystal-ball">
+        <div class="crystal-glow"></div>
+        <div class="crystal-mist"></div>
+        <div class="crystal-mist mist-2"></div>
+        <div class="crystal-sparkle s1">✧</div>
+        <div class="crystal-sparkle s2">✦</div>
+        <div class="crystal-sparkle s3">☽</div>
+        <div class="crystal-sparkle s4">✧</div>
+        <div class="crystal-highlight"></div>
+      </div>
+      <!-- 球体光圈 -->
+      <div class="crystal-ring"></div>
+    </div>
+
+    <!-- 标题 -->
+    <h1 class="welcome-title">心灵塔罗牌</h1>
+    <p class="welcome-subtitle">触碰灵珠，开启命运之门</p>
+
+    <!-- 开始按钮 -->
+    <button id="btn-start-ritual" class="welcome-start-btn">
+      <span class="btn-glow"></span>
+      <span class="btn-text">✦ 开启占卜仪式 ✦</span>
+    </button>
+
+    <p class="welcome-hint">点击后将请求摄像头权限以识别手势</p>
+  </div>
+
+  <!-- 加载画面（点击开始后才显示） -->
+  <div id="loading-screen" class="hidden">
     <div class="magic-circle-loader">
       <div class="circle outer"></div>
       <div class="circle inner"></div>
