@@ -11,9 +11,11 @@ const WASM_SOURCES = [
 ];
 
 const statusEl = document.getElementById('loading-status');
+const startBtn = document.getElementById('btn-start');
+if (startBtn) startBtn.style.display = 'none'; // 加载完再显示
 
 function setStatus(text) {
-  if (statusEl) statusEl.textContent = text;
+  if (statusEl) statusEl.innerHTML = text ? '<span class="start-loading-spinner"></span>' + text : '';
 }
 
 function blockInsecureDocumentOrigin() {

@@ -653,9 +653,63 @@ class SakuraTarotApp {
     this.particles = new ParticleSystem(this.els.particleCanvas);
     this.spellEffect = new SpellEffect(this.els.fxCanvas);
     this._bindUI();
-    await this._initCamera();
-    await this._initGesture();
-    this._hideLoading();
+    this._tryPlayBGM(); // 尽早尝试静音播放
+    // 不在这里初始化摄像头——等用户点击"开始"后再调起
+    this._showStartScreen();
+  }
+
+  /* 展示开始界面，等用户点击后才初始化摄像头和手势 */
+  _showStartScreen() {
+    const loading = this.els.loading;
+    if (!loading) {
+      this._startGame();
+      return;
+    }
+    const btn = document.getElementById('btn-start');
+    if (!btn) {
+      this._startGame();
+      return;
+    }
+    // 等 MediaPipe 加载完后才显示按钮（bootstrap 中已完成加载）
+    btn.style.display = '';
+    // 清空加载状态文字
+    if (this.els.loadingStatus) this.els.loadingStatus.textContent = '';
+
+    const startHandler = () => {
+      btn.removeEventListener('click', startHandler);
+      btn.removeEventListener('touchstart', startHandler);
+      // 按钮变为加载状态
+      btn.disabled = true;
+      btn.textContent = '正在准备…';
+      btn.style.opacity = '0.6';
+      this._tryPlayBGM();
+      this._startGame();
+    };
+    btn.addEventListener('click', startHandler);
+    btn.addEventListener('touchstart', startHandler, { passive: true });
+  }
+
+  /* 用户确认开始后：初始化摄像头 → 手势引擎 → 进入游戏 */
+  async _startGame() {
+    const loading = this.els.loading;
+    try {
+      await this._initCamera();
+      await this._initGesture();
+    } catch (err) {
+      // 错误已在 _initCamera/_initGesture 中处理
+      return;
+    }
+    // 加载完成，隐藏 loading 进入游戏
+    if (loading) {
+      loading.style.transition = 'opacity 0.5s';
+      loading.style.opacity = '0';
+      setTimeout(() => {
+        loading.style.display = 'none';
+        this.els.app?.classList.remove('hidden');
+      }, 500);
+    } else {
+      this.els.app?.classList.remove('hidden');
+    }
     this._updateHint('✊ 握拳召唤 → 🖐️ 张手展开牌阵');
     this._updateBadge('小樱·魔法阵');
   }
@@ -743,19 +797,36 @@ class SakuraTarotApp {
     if (this._bgmStarted) return;
     const bgm = this.els.bgm;
     if (!bgm) return;
-    bgm.volume = 0.35;
     bgm.loop = true;
+
+    // Safari 要求 play() 必须在用户交互的同步调用栈内
+    // 所以每次都直接尝试 play，不分静音/有声两步
     const attempt = () => {
       if (this._bgmStarted) return;
-      bgm.play().then(() => {
-        this._bgmStarted = true;
-        console.log('[BGM] Playing');
-      }).catch(e => {
-        console.log('[BGM] Blocked:', e.message);
-      });
+      bgm.volume = 0;
+      bgm.muted = false;
+      const p = bgm.play();
+      if (p && p.then) {
+        p.then(() => {
+          this._bgmStarted = true;
+          // 渐入音量
+          let vol = 0;
+          const fade = setInterval(() => {
+            vol = Math.min(vol + 0.05, 0.35);
+            bgm.volume = vol;
+            if (vol >= 0.35) clearInterval(fade);
+          }, 80);
+          console.log('[BGM] Playing with fade-in');
+        }).catch(e => {
+          console.log('[BGM] Blocked:', e.message);
+        });
+      }
     };
+
+    // 立即尝试一次（非用户交互可能被拒）
     attempt();
-    // 注册多种用户交互事件来触发播放
+
+    // 注册多种用户交互事件，确保在用户手势回调栈内同步调用 play
     if (!this._bgmListenersSet) {
       this._bgmListenersSet = true;
       const events = ['click', 'touchstart', 'pointerdown', 'keydown'];

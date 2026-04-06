@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>百变小樱 · 3D魔法舞台</title>
+<style>
+/* ========== Reset & Base ========== */
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#08061a;font-family:'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:#e0e0e0;user-select:none;-webkit-tap-highlight-color:transparent}
+
+/* ========== 星空背景 ========== */
+#starfield{position:fixed;inset:0;z-index:0}
+
+/* ========== 魔法粒子层 ========== */
+#magic-particles{position:fixed;inset:0;z-index:1;pointer-events:none}
+
+/* ========== 聚光灯效果 ========== */
+.spotlight{position:fixed;top:-15%;left:50%;transform:translateX(-50%);width:60vw;height:60vh;background:radial-gradient(ellipse at center top,rgba(180,160,255,0.08) 0%,rgba(100,80,200,0.04) 30%,transparent 70%);z-index:2;pointer-events:none;animation:spotPulse 4s ease-in-out infinite alternate}
+@keyframes spotPulse{0%{opacity:.6;transform:translateX(-50%) scale(1)}100%{opacity:1;transform:translateX(-50%) scale(1.05)}}
+
+/* ========== 3D舞台容器 ========== */
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;perspective:1200px;z-index:10}
+#scene{position:relative;width:600px;height:600px;transform-style:preserve-3d;transform:rotateX(15deg)}
+
+/* ========== 魔法阵 ========== */
+#magic-circle{position:absolute;top:50%;left:50%;width:520px;height:520px;transform:translate(-50%,-50%) rotateX(72deg);transform-style:preserve-3d;pointer-events:none}
+#magic-circle svg{width:100%;height:100%;filter:drop-shadow(0 0 20px rgba(255,215,0,0.3)) drop-shadow(0 0 60px rgba(180,140,255,0.2))}
+.mc-ring{fill:none;stroke-linecap:round}
+.mc-outer{stroke:rgba(255,215,0,0.5);stroke-width:2;animation:mcSpin 25s linear infinite}
+.mc-mid{stroke:rgba(200,170,255,0.4);stroke-width:1.5;animation:mcSpin 35s linear infinite reverse}
+.mc-inner{stroke:rgba(255,215,0,0.35);stroke-width:1.5;animation:mcSpin 20s linear infinite}
+.mc-rune-ring{stroke:rgba(180,140,255,0.25);stroke-width:1;stroke-dasharray:8 12;animation:mcSpin 15s linear infinite reverse}
+.mc-star{fill:none;stroke:rgba(255,215,0,0.45);stroke-width:1.5;stroke-linejoin:round;animation:mcSpin 30s linear infinite}
+.mc-star-inner{fill:none;stroke:rgba(200,170,255,0.35);stroke-width:1;stroke-linejoin:round;animation:mcSpin 22s linear infinite reverse}
+.mc-cross{stroke:rgba(255,215,0,0.15);stroke-width:0.8}
+.mc-rune{fill:rgba(255,215,0,0.5);font-size:14px;font-family:serif}
+.mc-glow{position:absolute;inset:-15%;border-radius:50%;background:radial-gradient(circle,rgba(255,215,0,0.1) 0%,rgba(160,120,255,0.06) 40%,transparent 70%);animation:mcGlow 3s ease-in-out infinite alternate;pointer-events:none}
+@keyframes mcSpin{to{transform:rotate(360deg)}}
+@keyframes mcGlow{0%{opacity:.5;transform:scale(.95)}100%{opacity:1;transform:scale(1.05)}}
+
+/* ========== 卡牌通用 ========== */
+.card-orbit{position:absolute;top:50%;left:50%;transform-style:preserve-3d;pointer-events:none}
+
+.magic-card{position:absolute;width:110px;height:160px;transform-style:preserve-3d;cursor:pointer;pointer-events:auto;transition:transform .6s cubic-bezier(.25,.9,.4,1.1),filter .4s,box-shadow .4s}
+.magic-card:hover{transform:translateY(-15px) scale(1.08)!important;z-index:100}
+
+.card-body{position:relative;width:100%;height:100%;transform-style:preserve-3d;border-radius:10px}
+
+/* 卡牌正面 */
+.card-face{position:absolute;inset:0;border-radius:10px;backface-visibility:hidden;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.card-face.front{
+  background:linear-gradient(145deg,#1a1535 0%,#0d0b20 100%);
+  border:2px solid rgba(255,215,0,0.5);
+  box-shadow:
+    0 0 15px rgba(255,215,0,0.15),
+    0 0 40px rgba(255,215,0,0.08),
+    0 8px 32px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    inset 0 -1px 0 rgba(0,0,0,0.3);
+}
+.card-face.front img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+.card-face.back{
+  background:linear-gradient(145deg,#1a1535,#2a1a4a);
+  border:2px solid rgba(180,140,255,0.4);
+  transform:rotateY(180deg);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 15px rgba(180,140,255,0.1),0 8px 32px rgba(0,0,0,0.6);
+}
+.card-face.back::after{content:'✦';font-size:36px;color:rgba(255,215,0,0.4)}
+
+/* 卡牌厚度边框（金属质感） */
+.card-edge{position:absolute;background:linear-gradient(180deg,#c9a64e,#8a6d2e,#c9a64e);backface-visibility:hidden}
+.card-edge.top{top:-3px;left:2px;right:2px;height:3px;border-radius:10px 10px 0 0;transform:rotateX(90deg);transform-origin:bottom}
+.card-edge.bottom{bottom:-3px;left:2px;right:2px;height:3px;border-radius:0 0 10px 10px;transform:rotateX(-90deg);transform-origin:top}
+.card-edge.left{top:2px;left:-3px;bottom:2px;width:3px;border-radius:10px 0 0 10px;transform:rotateY(-90deg);transform-origin:right}
+.card-edge.right{top:2px;right:-3px;bottom:2px;width:3px;border-radius:0 10px 10px 0;transform:rotateY(90deg);transform-origin:left}
+
+/* 卡牌发光 */
+.card-glow-effect{position:absolute;inset:-8px;border-radius:16px;opacity:0;transition:opacity .5s;pointer-events:none;
+  box-shadow:0 0 25px rgba(255,215,0,0.4),0 0 60px rgba(255,215,0,0.2),0 0 100px rgba(180,140,255,0.15);
+}
+.magic-card.active .card-glow-effect{opacity:1}
+.magic-card.active .card-face.front{
+  border-color:rgba(255,215,0,0.9);
+  box-shadow:
+    0 0 30px rgba(255,215,0,0.4),
+    0 0 60px rgba(255,215,0,0.15),
+    0 8px 40px rgba(0,0,0,0.5),
+    inset 0 0 30px rgba(255,215,0,0.05);
+}
+
+/* 卡牌反射光效 */
+.card-reflection{position:absolute;inset:0;border-radius:8px;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,0.08) 45%,rgba(255,255,255,0.15) 50%,rgba(255,255,255,0.08) 55%,transparent 70%);pointer-events:none;opacity:0;transition:opacity .6s}
+.magic-card:hover .card-reflection{opacity:1;animation:reflectionMove 2s ease-in-out infinite}
+@keyframes reflectionMove{0%{background-position:-200% 0}50%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* 卡牌名称标签 */
+.card-label{position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;letter-spacing:2px;color:rgba(255,215,0,0.7);text-shadow:0 0 10px rgba(255,215,0,0.3);opacity:0;transition:opacity .4s;pointer-events:none}
+.magic-card.active .card-label,.magic-card:hover .card-label{opacity:1}
+
+/* ========== 选中卡牌大图展示 ========== */
+#card-detail-overlay{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(5,3,20,0.85);backdrop-filter:blur(8px);opacity:0;pointer-events:none;transition:opacity .5s}
+#card-detail-overlay.show{opacity:1;pointer-events:auto}
+
+#detail-card{width:240px;height:350px;transform-style:preserve-3d;transition:transform 1s cubic-bezier(.25,.9,.4,1);position:relative}
+#detail-card.flip{transform:rotateY(180deg)}
+
+.detail-face{position:absolute;inset:0;border-radius:14px;backface-visibility:hidden;overflow:hidden}
+.detail-face.front{
+  border:3px solid rgba(255,215,0,0.7);
+  box-shadow:0 0 50px rgba(255,215,0,0.3),0 0 100px rgba(180,140,255,0.15),0 20px 60px rgba(0,0,0,0.5);
+}
+.detail-face.front img{width:100%;height:100%;object-fit:cover;border-radius:11px}
+.detail-face.back{
+  transform:rotateY(180deg);
+  background:linear-gradient(145deg,#1a1535,#2a1a4a);
+  border:3px solid rgba(180,140,255,0.5);
+  box-shadow:0 0 50px rgba(180,140,255,0.2),0 20px 60px rgba(0,0,0,0.5);
+  display:flex;align-items:center;justify-content:center
+}
+.detail-face.back::after{content:'✦';font-size:56px;color:rgba(255,215,0,0.5)}
+
+#detail-name{margin-top:24px;font-size:22px;font-weight:700;letter-spacing:6px;color:rgba(255,215,0,0.9);text-shadow:0 0 20px rgba(255,215,0,0.4)}
+
+.detail-magic-circle{position:absolute;width:380px;height:380px;animation:mcSpin 15s linear infinite;opacity:.3;pointer-events:none}
+
+#detail-hint{margin-top:16px;font-size:13px;color:rgba(255,255,255,0.4);letter-spacing:1px}
+
+/* 关闭按钮 */
+.close-btn{position:absolute;top:24px;right:24px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.4);color:rgba(255,255,255,0.6);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s;z-index:10}
+.close-btn:hover{border-color:rgba(255,215,0,0.6);color:rgba(255,215,0,0.8);background:rgba(255,215,0,0.1)}
+
+/* ========== 底部控制 ========== */
+#controls{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;gap:12px;z-index:50}
+.ctrl-btn{padding:8px 20px;border:1px solid rgba(255,215,0,0.3);border-radius:24px;background:rgba(10,8,30,0.7);color:rgba(255,215,0,0.7);font-size:13px;letter-spacing:1px;cursor:pointer;backdrop-filter:blur(10px);transition:all .3s;white-space:nowrap}
+.ctrl-btn:hover{border-color:rgba(255,215,0,0.7);color:rgba(255,215,0,1);background:rgba(255,215,0,0.1);box-shadow:0 0 20px rgba(255,215,0,0.15)}
+
+/* ========== 标题 ========== */
+#title-bar{position:fixed;top:20px;left:50%;transform:translateX(-50%);font-size:14px;letter-spacing:4px;color:rgba(255,215,0,0.6);text-shadow:0 0 15px rgba(255,215,0,0.25);z-index:50;pointer-events:none}
+
+/* ========== Loading ========== */
+#loader{position:fixed;inset:0;background:#08061a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .8s}
+#loader.hide{opacity:0;pointer-events:none}
+.loader-circle{width:80px;height:80px;border:2px solid transparent;border-top-color:rgba(255,215,0,0.7);border-right-color:rgba(180,140,255,0.5);border-radius:50%;animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-text{margin-top:16px;color:rgba(255,215,0,0.6);font-size:14px;letter-spacing:2px}
+
+/* ========== 响应式 ========== */
+@media(max-width:768px){
+  #scene{width:380px;height:380px}
+  #magic-circle{width:340px;height:340px}
+  .magic-card{width:80px;height:116px}
+  .card-label{font-size:9px;bottom:-22px}
+  #detail-card{width:200px;height:290px}
+  .detail-magic-circle{width:280px;height:280px}
+}
+@media(max-width:480px){
+  #scene{width:300px;height:300px}
+  #magic-circle{width:270px;height:270px}
+  .magic-card{width:65px;height:94px}
+}
+</style>
+</head>
+<body>
+
+<!-- 加载画面 -->
+<div id="loader">
+  <div class="loader-circle"></div>
+  <div class="loader-text">正在加载魔法舞台…</div>
+</div>
+
+<!-- 星空Canvas -->
+<canvas id="starfield"></canvas>
+
+<!-- 魔法粒子Canvas -->
+<canvas id="magic-particles"></canvas>
+
+<!-- 聚光灯 -->
+<div class="spotlight"></div>
+
+<!-- 标题 -->
+<div id="title-bar">✦ 百变小樱 · 魔法卡牌 ✦</div>
+
+<!-- 3D舞台 -->
+<div id="stage">
+  <div id="scene">
+    <!-- 魔法阵 -->
+    <div id="magic-circle">
+      <div class="mc-glow"></div>
+      <svg viewBox="0 0 520 520" xmlns="http://www.w3.org/2000/svg">
+        <!-- 外圈 -->
+        <circle class="mc-ring mc-outer" cx="260" cy="260" r="250"/>
+        <!-- 中圈 -->
+        <circle class="mc-ring mc-mid" cx="260" cy="260" r="220"/>
+        <!-- 内圈 -->
+        <circle class="mc-ring mc-inner" cx="260" cy="260" r="180"/>
+        <!-- 符文环 -->
+        <circle class="mc-ring mc-rune-ring" cx="260" cy="260" r="200"/>
+        
+        <!-- 五芒星 -->
+        <polygon class="mc-star" points="260,20 332,178 500,178 362,282 398,440 260,348 122,440 158,282 20,178 188,178"/>
+        <!-- 内五芒星（反转） -->
+        <polygon class="mc-star-inner" points="260,440 188,282 20,282 158,178 122,20 260,112 398,20 362,178 500,282 332,282"/>
+        
+        <!-- 十字线 -->
+        <line class="mc-cross" x1="260" y1="10" x2="260" y2="510"/>
+        <line class="mc-cross" x1="10" y1="260" x2="510" y2="260"/>
+        <line class="mc-cross" x1="77" y1="77" x2="443" y2="443"/>
+        <line class="mc-cross" x1="443" y1="77" x2="77" y2="443"/>
+        
+        <!-- 符文文字 -->
+        <text class="mc-rune" x="260" y="45" text-anchor="middle">☽</text>
+        <text class="mc-rune" x="475" y="265" text-anchor="middle">☆</text>
+        <text class="mc-rune" x="260" y="490" text-anchor="middle">✧</text>
+        <text class="mc-rune" x="45" y="265" text-anchor="middle">✦</text>
+        <text class="mc-rune" x="400" y="100" text-anchor="middle">⊕</text>
+        <text class="mc-rune" x="400" y="440" text-anchor="middle">☉</text>
+        <text class="mc-rune" x="120" y="100" text-anchor="middle">◈</text>
+        <text class="mc-rune" x="120" y="440" text-anchor="middle">⊛</text>
+        
+        <!-- 装饰小圆 -->
+        <circle cx="260" cy="10" r="5" fill="rgba(255,215,0,0.6)"/>
+        <circle cx="260" cy="510" r="5" fill="rgba(255,215,0,0.6)"/>
+        <circle cx="10" cy="260" r="5" fill="rgba(255,215,0,0.6)"/>
+        <circle cx="510" cy="260" r="5" fill="rgba(255,215,0,0.6)"/>
+        <circle cx="260" cy="260" r="6" fill="rgba(255,215,0,0.5)"/>
+        <circle cx="260" cy="260" r="15" fill="none" stroke="rgba(255,215,0,0.3)" stroke-width="1"/>
+      </svg>
+    </div>
+    
+    <!-- 卡牌将由JS生成 -->
+  </div>
+</div>
+
+<!-- 选中卡牌详情 -->
+<div id="card-detail-overlay">
+  <button class="close-btn" onclick="closeDetail()">✕</button>
+  <svg class="detail-magic-circle" viewBox="0 0 520 520" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="260" cy="260" r="250" fill="none" stroke="rgba(255,215,0,0.25)" stroke-width="1.5"/>
+    <circle cx="260" cy="260" r="220" fill="none" stroke="rgba(180,140,255,0.2)" stroke-width="1"/>
+    <polygon points="260,20 332,178 500,178 362,282 398,440 260,348 122,440 158,282 20,178 188,178" fill="none" stroke="rgba(255,215,0,0.2)" stroke-width="1"/>
+  </svg>
+  <div id="detail-card">
+    <div class="detail-face front" id="detail-front"></div>
+    <div class="detail-face back"></div>
+  </div>
+  <div id="detail-name"></div>
+  <div id="detail-hint">点击卡牌翻转 · 点击空白处关闭</div>
+</div>
+
+<!-- 底部控制 -->
+<div id="controls">
+  <button class="ctrl-btn" onclick="autoRotate()">✦ 自动旋转</button>
+  <button class="ctrl-btn" onclick="shuffleCards()">⚡ 洗牌</button>
+  <button class="ctrl-btn" onclick="toggleOrbit()">◎ 切换轨道</button>
+</div>
+
+<script>
+/* ==========================================
+   百变小樱 · 3D魔法舞台 - 核心脚本
+   ========================================== */
+
+// ===== 卡牌数据 =====
+const CARD_DATA = [
+  { id:'card1', name:'风 WINDY', img:'小樱卡片/1774582442715.png', element:'wind', color:'#4fc3f7' },
+  { id:'card2', name:'水 WATERY', img:'小樱卡片/1774582448138.png', element:'water', color:'#29b6f6' },
+  { id:'card3', name:'火 FIREY', img:'小樱卡片/1774582452433.png', element:'fire', color:'#ff7043' },
+  { id:'card4', name:'光 LIGHT', img:'小樱卡片/1774582457953.png', element:'light', color:'#fdd835' },
+  { id:'card5', name:'影 SHADOW', img:'小樱卡片/1774582462348.png', element:'shadow', color:'#7c4dff' },
+  { id:'card6', name:'花 FLOWER', img:'小樱卡片/1774582466893.png', element:'flower', color:'#f48fb1' },
+  { id:'card7', name:'雷 THUNDER', img:'小樱卡片/1774582472949.png', element:'thunder', color:'#ffd54f' },
+  { id:'card8', name:'时 TIME', img:'小樱卡片/1774582477793.png', element:'time', color:'#ce93d8' },
+];
+
+// ===== 全局状态 =====
+let scene, cards = [], activeIndex = 0;
+let innerAngle = 0, outerAngle = 0;
+let isAutoRotating = false, autoRotateTimer = null;
+let orbitMode = 'dual'; // 'dual' | 'single'
+let mouseX = 0, mouseY = 0;
+let targetRotX = 15, targetRotY = 0, currentRotX = 15, currentRotY = 0;
+
+// ===== 星空背景 =====
+function initStarfield() {
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  let shootingStars = [];
+  
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  
+  // 生成星星
+  for (let i = 0; i < 300; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.8 + 0.2,
+      alpha: Math.random() * 0.8 + 0.2,
+      twinkleSpeed: Math.random() * 0.02 + 0.005,
+      twinklePhase: Math.random() * Math.PI * 2
+    });
+  }
+  
+  function addShootingStar() {
+    if (shootingStars.length < 2 && Math.random() < 0.008) {
+      shootingStars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height * 0.3,
+        vx: 3 + Math.random() * 4,
+        vy: 1 + Math.random() * 2,
+        life: 1,
+        len: 40 + Math.random() * 60
+      });
+    }
+  }
+  
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 渐变背景
+    const bgGrad = ctx.createRadialGradient(
+      canvas.width * 0.5, canvas.height * 0.4, 0,
+      canvas.width * 0.5, canvas.height * 0.4, canvas.width * 0.8
+    );
+    bgGrad.addColorStop(0, '#12103a');
+    bgGrad.addColorStop(0.4, '#0c0a28');
+    bgGrad.addColorStop(1, '#06041a');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // 星云
+    const t = Date.now() * 0.0002;
+    for (let i = 0; i < 3; i++) {
+      const nx = canvas.width * (0.3 + i * 0.2) + Math.sin(t + i) * 40;
+      const ny = canvas.height * (0.3 + i * 0.15) + Math.cos(t * 0.7 + i) * 30;
+      const nebula = ctx.createRadialGradient(nx, ny, 0, nx, ny, 150 + i * 50);
+      nebula.addColorStop(0, `rgba(${100 + i*40}, ${60 + i*30}, ${180 + i*20}, 0.04)`);
+      nebula.addColorStop(1, 'transparent');
+      ctx.fillStyle = nebula;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    // 星星
+    const now = Date.now() * 0.001;
+    for (const s of stars) {
+      const twinkle = Math.sin(now * s.twinkleSpeed * 60 + s.twinklePhase) * 0.3 + 0.7;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(220,210,255,${s.alpha * twinkle})`;
+      ctx.fill();
+      if (s.r > 1.2) {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r * 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(180,170,255,${s.alpha * twinkle * 0.15})`;
+        ctx.fill();
+      }
+    }
+    
+    // 流星
+    addShootingStar();
+    shootingStars = shootingStars.filter(ss => {
+      ss.x += ss.vx;
+      ss.y += ss.vy;
+      ss.life -= 0.015;
+      if (ss.life <= 0) return false;
+      
+      ctx.save();
+      const grad = ctx.createLinearGradient(ss.x, ss.y, ss.x - ss.vx * ss.len / 5, ss.y - ss.vy * ss.len / 5);
+      grad.addColorStop(0, `rgba(255,255,255,${ss.life * 0.8})`);
+      grad.addColorStop(1, 'transparent');
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(ss.x, ss.y);
+      ctx.lineTo(ss.x - ss.vx * ss.len / 5, ss.y - ss.vy * ss.len / 5);
+      ctx.stroke();
+      ctx.restore();
+      return true;
+    });
+    
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+// ===== 魔法粒子 =====
+function initMagicParticles() {
+  const canvas = document.getElementById('magic-particles');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  
+  function spawnParticle() {
+    const side = Math.random();
+    let x, y;
+    if (side < 0.25) { x = Math.random() * canvas.width; y = -10; }
+    else if (side < 0.5) { x = Math.random() * canvas.width; y = canvas.height + 10; }
+    else if (side < 0.75) { x = -10; y = Math.random() * canvas.height; }
+    else { x = canvas.width + 10; y = Math.random() * canvas.height; }
+    
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const angle = Math.atan2(cy - y, cx - x) + (Math.random() - 0.5) * 1.2;
+    const speed = 0.3 + Math.random() * 0.6;
+    
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      size: Math.random() * 2.5 + 0.5,
+      life: 1,
+      decay: 0.002 + Math.random() * 0.003,
+      color: Math.random() > 0.5 ? 'rgba(255,215,0,' : 'rgba(180,140,255,',
+      wobble: Math.random() * Math.PI * 2,
+      wobbleSpeed: 0.02 + Math.random() * 0.03
+    });
+  }
+  
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (particles.length < 60 && Math.random() < 0.3) spawnParticle();
+    
+    particles = particles.filter(p => {
+      p.wobble += p.wobbleSpeed;
+      p.x += p.vx + Math.sin(p.wobble) * 0.3;
+      p.y += p.vy + Math.cos(p.wobble) * 0.2;
+      p.life -= p.decay;
+      if (p.life <= 0) return false;
+      
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      ctx.fillStyle = p.color + (p.life * 0.6) + ')';
+      ctx.shadowColor = p.color + '0.3)';
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      return true;
+    });
+    
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+// ===== 创建3D卡牌 =====
+function createCards() {
+  scene = document.getElementById('scene');
+  
+  const innerCards = CARD_DATA.slice(0, 4); // 内圈4张
+  const outerCards = CARD_DATA.slice(4, 8); // 外圈4张
+  
+  // 内圈
+  innerCards.forEach((data, i) => {
+    const angle = (360 / 4) * i;
+    const card = createCardElement(data, i, 'inner', angle);
+    scene.appendChild(card);
+    cards.push({ el: card, data, ring: 'inner', baseAngle: angle, index: i });
+  });
+  
+  // 外圈
+  outerCards.forEach((data, i) => {
+    const angle = (360 / 4) * i + 45; // 外圈偏转45度
+    const card = createCardElement(data, i + 4, 'outer', angle);
+    scene.appendChild(card);
+    cards.push({ el: card, data, ring: 'outer', baseAngle: angle, index: i + 4 });
+  });
+  
+  updateCardPositions();
+}
+
+function createCardElement(data, index, ring, angle) {
+  const card = document.createElement('div');
+  card.className = 'magic-card';
+  card.dataset.index = index;
+  card.dataset.ring = ring;
+  
+  card.innerHTML = `
+    <div class="card-body">
+      <div class="card-glow-effect"></div>
+      <div class="card-face front">
+        <img src="${data.img}" alt="${data.name}" loading="lazy">
+      </div>
+      <div class="card-face back"></div>
+      <div class="card-edge top"></div>
+      <div class="card-edge bottom"></div>
+      <div class="card-edge left"></div>
+      <div class="card-edge right"></div>
+      <div class="card-reflection"></div>
+    </div>
+    <div class="card-label">${data.name}</div>
+  `;
+  
+  card.addEventListener('click', () => selectCard(index));
+  
+  return card;
+}
+
+function updateCardPositions() {
+  const innerRadius = orbitMode === 'single' ? 160 : 120;
+  const outerRadius = orbitMode === 'single' ? 160 : 210;
+  const innerTilt = 72; // 魔法阵倾斜角度
+  
+  cards.forEach(c => {
+    const isInner = c.ring === 'inner';
+    const radius = isInner ? innerRadius : outerRadius;
+    const angleOffset = isInner ? innerAngle : outerAngle;
+    const totalAngle = c.baseAngle + angleOffset;
+    const rad = totalAngle * Math.PI / 180;
+    
+    const x = Math.sin(rad) * radius;
+    const z = Math.cos(rad) * radius;
+    const y = isInner ? -30 : -50; // 内圈低一些，外圈高一些
+    
+    // 让卡牌面向中心
+    const faceAngle = -totalAngle;
+    
+    c.el.style.transform = `translate(-50%, -50%) translate3d(${x}px, ${y}px, ${z}px) rotateY(${faceAngle}deg)`;
+    c.el.style.left = '50%';
+    c.el.style.top = '50%';
+    
+    // 基于深度的光影效果
+    const depth = (z + radius) / (radius * 2); // 0~1, 1=最近
+    const brightness = 0.5 + depth * 0.5;
+    const blur = (1 - depth) * 1.5;
+    c.el.style.filter = `brightness(${brightness}) blur(${blur}px)`;
+    c.el.style.zIndex = Math.floor(depth * 100);
+    
+    // 高亮当前选中
+    c.el.classList.toggle('active', c.index === activeIndex);
+  });
+}
+
+// ===== 选中卡牌 =====
+function selectCard(index) {
+  const overlay = document.getElementById('card-detail-overlay');
+  const front = document.getElementById('detail-front');
+  const name = document.getElementById('detail-name');
+  const detailCard = document.getElementById('detail-card');
+  
+  const data = CARD_DATA[index];
+  
+  front.innerHTML = `<img src="${data.img}" alt="${data.name}" style="width:100%;height:100%;object-fit:cover;border-radius:11px">`;
+  front.style.borderColor = data.color + 'aa';
+  front.style.boxShadow = `0 0 50px ${data.color}40, 0 0 100px ${data.color}15, 0 20px 60px rgba(0,0,0,0.5)`;
+  name.textContent = data.name;
+  name.style.color = data.color;
+  
+  detailCard.classList.remove('flip');
+  overlay.classList.add('show');
+  
+  activeIndex = index;
+  updateCardPositions();
+}
+
+function closeDetail() {
+  document.getElementById('card-detail-overlay').classList.remove('show');
+}
+
+// 点击overlay空白关闭
+document.getElementById('card-detail-overlay').addEventListener('click', function(e) {
+  if (e.target === this || e.target.classList.contains('detail-magic-circle') || e.target.tagName === 'svg' || e.target.tagName === 'circle' || e.target.tagName === 'polygon') {
+    closeDetail();
+  }
+});
+
+// 点击详情卡翻转
+document.getElementById('detail-card').addEventListener('click', function(e) {
+  e.stopPropagation();
+  this.classList.toggle('flip');
+});
+
+// ===== 控制功能 =====
+function autoRotate() {
+  isAutoRotating = !isAutoRotating;
+  const btn = document.querySelector('#controls .ctrl-btn:first-child');
+  btn.style.borderColor = isAutoRotating ? 'rgba(255,215,0,0.9)' : '';
+  btn.style.color = isAutoRotating ? 'rgba(255,215,0,1)' : '';
+  btn.style.boxShadow = isAutoRotating ? '0 0 20px rgba(255,215,0,0.3)' : '';
+}
+
+function shuffleCards() {
+  // 洗牌动画
+  cards.forEach((c, i) => {
+    c.el.style.transition = 'transform 0.8s cubic-bezier(.25,.9,.4,1)';
+    c.el.style.transform += ' rotateZ(360deg) scale(0.5)';
+  });
+  
+  setTimeout(() => {
+    // Fisher-Yates shuffle
+    for (let i = CARD_DATA.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [CARD_DATA[i], CARD_DATA[j]] = [CARD_DATA[j], CARD_DATA[i]];
+    }
+    
+    // 重新创建卡牌
+    cards.forEach(c => c.el.remove());
+    cards = [];
+    createCards();
+    
+    // 入场动画
+    cards.forEach((c, i) => {
+      c.el.style.opacity = '0';
+      c.el.style.transition = 'none';
+      setTimeout(() => {
+        c.el.style.transition = 'all 0.6s cubic-bezier(.25,.9,.4,1)';
+        c.el.style.opacity = '1';
+      }, 100 + i * 80);
+    });
+  }, 500);
+}
+
+function toggleOrbit() {
+  if (orbitMode === 'dual') {
+    orbitMode = 'single';
+    // 把所有卡牌归到同一圈
+    cards.forEach((c, i) => {
+      c.ring = 'inner';
+      c.baseAngle = (360 / 8) * i;
+    });
+  } else {
+    orbitMode = 'dual';
+    cards.forEach((c, i) => {
+      if (i < 4) {
+        c.ring = 'inner';
+        c.baseAngle = (360 / 4) * i;
+      } else {
+        c.ring = 'outer';
+        c.baseAngle = (360 / 4) * (i - 4) + 45;
+      }
+    });
+  }
+  
+  cards.forEach(c => {
+    c.el.style.transition = 'transform 0.8s cubic-bezier(.25,.9,.4,1), filter 0.4s';
+  });
+  updateCardPositions();
+  
+  setTimeout(() => {
+    cards.forEach(c => {
+      c.el.style.transition = 'transform .6s cubic-bezier(.25,.9,.4,1), filter .4s, box-shadow .4s';
+    });
+  }, 900);
+}
+
+// ===== 鼠标/触控交互 =====
+let isDragging = false, dragStartX = 0, dragStartY = 0, dragStartInner = 0, dragStartOuter = 0;
+
+document.addEventListener('mousedown', (e) => {
+  if (e.target.closest('#controls') || e.target.closest('#card-detail-overlay') || e.target.closest('.magic-card')) return;
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  dragStartInner = innerAngle;
+  dragStartOuter = outerAngle;
+});
+
+document.addEventListener('mousemove', (e) => {
+  mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+  mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+  
+  if (isDragging) {
+    const dx = e.clientX - dragStartX;
+    innerAngle = dragStartInner + dx * 0.5;
+    outerAngle = dragStartOuter - dx * 0.3;
+    updateCardPositions();
+  }
+});
+
+document.addEventListener('mouseup', () => { isDragging = false; });
+
+// 触控支持
+let touchStartX = 0;
+document.addEventListener('touchstart', (e) => {
+  if (e.target.closest('#controls') || e.target.closest('#card-detail-overlay') || e.target.closest('.magic-card')) return;
+  touchStartX = e.touches[0].clientX;
+  dragStartInner = innerAngle;
+  dragStartOuter = outerAngle;
+  isDragging = true;
+}, { passive: true });
+
+document.addEventListener('touchmove', (e) => {
+  if (!isDragging) return;
+  const dx = e.touches[0].clientX - touchStartX;
+  innerAngle = dragStartInner + dx * 0.5;
+  outerAngle = dragStartOuter - dx * 0.3;
+  updateCardPositions();
+}, { passive: true });
+
+document.addEventListener('touchend', () => { isDragging = false; });
+
+// 鼠标滚轮切换
+document.addEventListener('wheel', (e) => {
+  if (e.target.closest('#card-detail-overlay')) return;
+  const dir = e.deltaY > 0 ? 1 : -1;
+  innerAngle += dir * 30;
+  outerAngle -= dir * 20;
+  updateCardPositions();
+}, { passive: true });
+
+// ===== 动画主循环 =====
+function mainLoop() {
+  // 自动旋转
+  if (isAutoRotating && !isDragging) {
+    innerAngle += 0.15;
+    outerAngle -= 0.1;
+    updateCardPositions();
+  }
+  
+  // 场景跟随鼠标轻微倾斜
+  if (!isDragging) {
+    targetRotX = 15 + mouseY * 5;
+    targetRotY = mouseX * 8;
+  }
+  
+  currentRotX += (targetRotX - currentRotX) * 0.05;
+  currentRotY += (targetRotY - currentRotY) * 0.05;
+  
+  if (scene) {
+    scene.style.transform = `rotateX(${currentRotX}deg) rotateY(${currentRotY}deg)`;
+  }
+  
+  requestAnimationFrame(mainLoop);
+}
+
+// ===== 键盘控制 =====
+document.addEventListener('keydown', (e) => {
+  switch(e.key) {
+    case 'ArrowLeft':
+      innerAngle -= 30;
+      outerAngle += 20;
+      updateCardPositions();
+      break;
+    case 'ArrowRight':
+      innerAngle += 30;
+      outerAngle -= 20;
+      updateCardPositions();
+      break;
+    case 'Escape':
+      closeDetail();
+      break;
+    case ' ':
+      e.preventDefault();
+      autoRotate();
+      break;
+  }
+});
+
+// ===== 初始化 =====
+function init() {
+  initStarfield();
+  initMagicParticles();
+  createCards();
+  
+  // 入场动画
+  cards.forEach((c, i) => {
+    c.el.style.opacity = '0';
+    c.el.style.transition = 'none';
+    setTimeout(() => {
+      c.el.style.transition = 'all 0.7s cubic-bezier(.25,.9,.4,1)';
+      c.el.style.opacity = '1';
+    }, 300 + i * 120);
+  });
+  
+  mainLoop();
+  
+  // 隐藏加载
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hide');
+    setTimeout(() => {
+      document.getElementById('loader').style.display = 'none';
+    }, 800);
+  }, 800);
+}
+
+// 等待图片预加载
+let loadedCount = 0;
+const totalImages = CARD_DATA.length;
+
+CARD_DATA.forEach(data => {
+  const img = new Image();
+  img.onload = img.onerror = () => {
+    loadedCount++;
+    if (loadedCount >= totalImages) {
+      init();
+    }
+  };
+  img.src = data.img;
+});
+
+// 超时保底
+setTimeout(() => {
+  if (loadedCount < totalImages) {
+    init();
+  }
+}, 5000);
+</script>
+</body>
+</html>

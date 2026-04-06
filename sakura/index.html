@@ -23,17 +23,95 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 
 .hidden{display:none!important}
 
-/* 加载 */
-#loading-screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#050510;z-index:9999}
-.magic-circle-loader{position:relative;width:120px;height:120px}
-.magic-circle-loader .circle{position:absolute;border:2px solid transparent;border-radius:50%}
-.magic-circle-loader .outer{inset:0;border-top-color:var(--accent-rose);border-right-color:rgba(255,255,255,0.12);animation:ldSpin 3s linear infinite}
-.magic-circle-loader .inner{inset:15px;border-bottom-color:#b8a9c9;border-left-color:rgba(255,255,255,0.08);animation:ldSpin 2s linear infinite reverse}
-.magic-circle-loader .star{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--text-primary);animation:ldPulse 2s ease-in-out infinite}
+/* 启动页 */
+#loading-screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#050510;z-index:9999;overflow:hidden}
+#loading-screen::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 40%, rgba(212,160,23,0.06) 0%, transparent 60%),
+             radial-gradient(ellipse at 50% 70%, rgba(255,107,157,0.04) 0%, transparent 50%);
+  pointer-events:none;
+}
+.start-magic-circle{
+  position:relative;width:min(70vw,280px);height:min(70vw,280px);
+  margin-bottom:32px;
+}
+.start-magic-circle svg{
+  width:100%;height:100%;
+  opacity:0.9;
+  animation:startMcSpin 40s linear infinite;
+  filter: drop-shadow(0 0 6px rgba(255,215,0,0.3));
+}
+.start-mc-inner{transform-origin:300px 300px;animation:startMcSpinR 30s linear infinite}
+.start-mc-ticks{transform-origin:300px 300px;animation:startMcSpin 60s linear infinite}
+@keyframes startMcSpinR{to{transform:rotate(-360deg)}}
+.start-magic-circle .start-mc-glow{
+  position:absolute;inset:-20%;border-radius:50%;
+  background:radial-gradient(circle, rgba(212,160,23,0.15) 0%, rgba(255,107,157,0.06) 40%, transparent 65%);
+  animation:startGlowPulse 3s ease-in-out infinite alternate;
+  pointer-events:none;
+}
+.start-magic-circle .start-center-star{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:36px;color:rgba(255,215,0,0.9);
+  animation:startStarPulse 2.5s ease-in-out infinite;
+  text-shadow:0 0 20px rgba(255,215,0,0.5), 0 0 40px rgba(255,182,193,0.3);
+}
+@keyframes startMcSpin{to{transform:rotate(360deg)}}
+@keyframes startGlowPulse{0%{opacity:0.6;transform:scale(0.95)}100%{opacity:1;transform:scale(1.05)}}
+@keyframes startStarPulse{0%,100%{opacity:0.8;transform:scale(1)}50%{opacity:1;transform:scale(1.15)}}
+
+.start-title{
+  font-size:28px;font-weight:700;letter-spacing:6px;
+  color:var(--text-primary);
+  text-shadow:0 0 24px rgba(255,215,0,0.3), 0 0 48px rgba(255,182,193,0.15);
+  margin-bottom:8px;
+}
+.start-subtitle{
+  font-size:13px;color:var(--text-muted);letter-spacing:4px;font-weight:300;
+  margin-bottom:40px;
+}
+.start-btn{
+  position:relative;overflow:hidden;
+  padding:15px 42px;border:1px solid rgba(255,215,0,0.5);
+  background:rgba(20,15,5,0.6);border-radius:40px;
+  color:#FFD700;font-size:15px;letter-spacing:5px;font-weight:400;
+  cursor:pointer;transition:all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:0 0 20px rgba(255,215,0,0.15), inset 0 0 10px rgba(255,215,0,0.1);
+  animation:startBtnPulse 2s ease-in-out infinite alternate;
+  -webkit-tap-highlight-color:transparent;
+}
+.start-btn::before{
+  content:'';position:absolute;top:0;left:-100%;
+  width:50%;height:100%;
+  background:linear-gradient(90deg, transparent, rgba(255,215,0,0.2), transparent);
+  transform:skewX(-20deg);
+  animation:btnSweep 3s linear infinite;
+}
+.start-btn:hover,.start-btn:active{
+  background:rgba(255,215,0,0.1);border-color:rgba(255,215,0,0.8);
+  box-shadow:0 0 24px rgba(255,215,0,0.3), inset 0 0 12px rgba(255,215,0,0.2);
+  transform:scale(1.02);
+}
+@keyframes startBtnPulse{
+  0%{box-shadow:0 0 12px rgba(212,160,23,0.15), inset 0 0 8px rgba(212,160,23,0.1);border-color:rgba(212,160,23,0.4)}
+  100%{box-shadow:0 0 24px rgba(255,215,0,0.25), inset 0 0 12px rgba(255,215,0,0.15);border-color:rgba(255,215,0,0.7)}
+}
+@keyframes btnSweep{
+  0%{left:-100%}
+  20%{left:200%}
+  100%{left:200%}
+}
+#loading-status{
+  margin-top:16px;font-size:12px;color:var(--text-muted);letter-spacing:1px;
+  min-height:18px;transition:opacity 0.3s;
+}
+/* 加载中旋转圈（复用，在start-btn下方小字显示进度时用） */
+.start-loading-spinner{
+  display:inline-block;width:14px;height:14px;border:1.5px solid rgba(255,255,255,0.15);
+  border-top-color:var(--accent-rose);border-radius:50%;
+  animation:ldSpin 1s linear infinite;vertical-align:middle;margin-right:6px;
+}
 @keyframes ldSpin{to{transform:rotate(360deg)}}
-@keyframes ldPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.9)}}
-.loading-text{margin-top:24px;font-size:17px;color:var(--text-primary);letter-spacing:3px;font-weight:300}
-.loading-sub{margin-top:8px;font-size:13px;color:var(--text-muted)}
 
 #starfield{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 #scene{
@@ -721,13 +799,50 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 </head>
 <body>
   <div id="loading-screen">
-    <div class="magic-circle-loader">
-      <div class="circle outer"></div>
-      <div class="circle inner"></div>
-      <div class="star">✦</div>
+    <div class="start-magic-circle">
+      <div class="start-mc-glow"></div>
+      <svg id="start-magic-circle-svg" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+        <g>
+          <circle cx="300" cy="300" r="290" fill="none" stroke="rgba(212,160,23,0.7)" stroke-width="2.5"/>
+          <circle cx="300" cy="300" r="282" fill="none" stroke="rgba(212,160,23,0.4)" stroke-width="1"/>
+          <g class="start-mc-ticks">
+            <circle cx="300" cy="300" r="270" fill="none" stroke="rgba(212,160,23,0.35)" stroke-width="1.5" stroke-dasharray="4 4"/>
+          </g>
+          <circle cx="300" cy="300" r="255" fill="none" stroke="rgba(212,160,23,0.6)" stroke-width="2"/>
+          <circle cx="300" cy="300" r="248" fill="none" stroke="rgba(212,160,23,0.3)" stroke-width="1"/>
+          <g class="start-mc-inner">
+            <circle cx="300" cy="300" r="230" fill="none" stroke="rgba(212,160,23,0.45)" stroke-width="1.5" stroke-dasharray="6 8"/>
+            <circle cx="300" cy="300" r="215" fill="none" stroke="rgba(212,160,23,0.5)" stroke-width="1.5"/>
+            <polygon points="300,85 486,195 486,405 300,515 114,405 114,195" fill="none" stroke="rgba(212,160,23,0.6)" stroke-width="2" stroke-linejoin="round"/>
+            <polygon points="300,515 486,405 486,195 300,85 114,195 114,405" fill="none" stroke="rgba(212,160,23,0.45)" stroke-width="1.5" stroke-linejoin="round"/>
+            <line x1="300" y1="85" x2="300" y2="515" stroke="rgba(212,160,23,0.2)" stroke-width="1"/>
+            <line x1="114" y1="195" x2="486" y2="405" stroke="rgba(212,160,23,0.2)" stroke-width="1"/>
+            <line x1="486" y1="195" x2="114" y2="405" stroke="rgba(212,160,23,0.2)" stroke-width="1"/>
+            <circle cx="300" cy="300" r="100" fill="none" stroke="rgba(212,160,23,0.5)" stroke-width="1.5"/>
+            <circle cx="300" cy="300" r="90" fill="none" stroke="rgba(212,160,23,0.35)" stroke-width="1" stroke-dasharray="3 5"/>
+          </g>
+          <g><path d="M 78,300 A 55,55 0 1,1 78,190 A 40,40 0 1,0 78,300 Z" fill="none" stroke="rgba(212,160,23,0.65)" stroke-width="2"/></g>
+          <g><circle cx="525" cy="300" r="28" fill="none" stroke="rgba(212,160,23,0.65)" stroke-width="2"/><circle cx="525" cy="300" r="18" fill="none" stroke="rgba(212,160,23,0.45)" stroke-width="1.5"/><circle cx="525" cy="300" r="6" fill="rgba(212,160,23,0.5)"/><line x1="525" y1="265" x2="525" y2="250" stroke="rgba(212,160,23,0.6)" stroke-width="2"/><line x1="525" y1="335" x2="525" y2="350" stroke="rgba(212,160,23,0.6)" stroke-width="2"/><line x1="490" y1="300" x2="475" y2="300" stroke="rgba(212,160,23,0.6)" stroke-width="2"/><line x1="560" y1="300" x2="575" y2="300" stroke="rgba(212,160,23,0.6)" stroke-width="2"/></g>
+          <g>
+            <circle cx="300" cy="22" r="16" fill="rgba(10,8,18,0.8)" stroke="rgba(212,160,23,0.7)" stroke-width="1.5"/>
+            <text x="300" y="28" text-anchor="middle" fill="rgba(212,160,23,0.9)" font-size="16" font-weight="bold" font-family="serif">北</text>
+            <circle cx="300" cy="578" r="16" fill="rgba(10,8,18,0.8)" stroke="rgba(212,160,23,0.7)" stroke-width="1.5"/>
+            <text x="300" y="584" text-anchor="middle" fill="rgba(212,160,23,0.9)" font-size="16" font-weight="bold" font-family="serif">南</text>
+            <circle cx="578" cy="300" r="16" fill="rgba(10,8,18,0.8)" stroke="rgba(212,160,23,0.7)" stroke-width="1.5"/>
+            <text x="578" y="306" text-anchor="middle" fill="rgba(212,160,23,0.9)" font-size="16" font-weight="bold" font-family="serif">東</text>
+            <circle cx="22" cy="300" r="16" fill="rgba(10,8,18,0.8)" stroke="rgba(212,160,23,0.7)" stroke-width="1.5"/>
+            <text x="22" y="306" text-anchor="middle" fill="rgba(212,160,23,0.9)" font-size="16" font-weight="bold" font-family="serif">西</text>
+          </g>
+          <circle cx="300" cy="300" r="5" fill="rgba(212,160,23,0.6)"/>
+          <circle cx="300" cy="300" r="12" fill="none" stroke="rgba(212,160,23,0.4)" stroke-width="1.5"/>
+        </g>
+      </svg>
+      <div class="start-center-star">✦</div>
     </div>
-    <p class="loading-text">小樱魔法阵</p>
-    <p class="loading-sub" id="loading-status">初始化中</p>
+    <div class="start-title">小樱魔法卡</div>
+    <div class="start-subtitle">CARDCAPTOR SAKURA</div>
+    <button class="start-btn" id="btn-start">封印解除 · 开始占卜</button>
+    <div id="loading-status"></div>
   </div>
 
   <div id="app" class="hidden">
