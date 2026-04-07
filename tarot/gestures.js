@@ -122,6 +122,9 @@ class GestureEngine {
     this.lastFpsTime = 0;
     this.fps = 0;
 
+    // 推理节流（可按设备降档）
+    this._detectIntervalMs = 33; // ~30fps
+
     // 调试
     this.debugData = {
       gesture: GESTURE.NONE,
@@ -134,6 +137,11 @@ class GestureEngine {
   async init(videoElement, options = {}) {
     this.video = videoElement;
     const onStatus = typeof options.onStatus === 'function' ? options.onStatus : null;
+    const perfProfile = options.perfProfile || {};
+
+    // 低端设备默认降低推理频率与手数，缓解卡顿/发热
+    const lowEnd = !!perfProfile.lowEnd;
+    this._detectIntervalMs = lowEnd ? 66 : 33; // 15fps vs 30fps
 
     const { HandLandmarker, FilesetResolver } = window;
     if (!HandLandmarker || !FilesetResolver) {
@@ -162,7 +170,7 @@ class GestureEngine {
         delegate,
       },
       runningMode: 'VIDEO',
-      numHands: 2,
+      numHands: lowEnd ? 1 : 2,
       minHandDetectionConfidence: 0.6,
       minHandPresenceConfidence: 0.6,
       minTrackingConfidence: 0.6,
@@ -201,8 +209,8 @@ class GestureEngine {
 
     const now = performance.now();
 
-    // 限制检测频率：最高 ~30fps，避免 Safari 上推理阻塞渲染
-    if (now - (this._lastDetectTime || 0) < 30) {
+    // 限制检测频率：避免推理阻塞渲染（低端设备会更低）
+    if (now - (this._lastDetectTime || 0) < this._detectIntervalMs) {
       requestAnimationFrame(() => this._detect());
       return;
     }

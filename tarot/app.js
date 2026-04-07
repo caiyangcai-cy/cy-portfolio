@@ -34,10 +34,12 @@ class App {
     // DOM
     this.els = {};
     this._questionReady = false; // 是否已完成提问
+    this._perfProfile = null;
   }
 
   async boot() {
     this._cacheDom();
+    this._perfProfile = this._detectPerfProfile();
     this._initEffects();
     this._initStarfield();
     this._bindUI();
@@ -59,6 +61,21 @@ class App {
 
     // 异步初始化摄像头和手势（在后台进行，不阻塞提问面板）
     this._initCameraAndGesture();
+  }
+
+  _detectPerfProfile() {
+    const ua = navigator.userAgent || '';
+    const isAndroid = /Android/i.test(ua);
+    const isIOS = /iPad|iPhone|iPod/i.test(ua);
+    const deviceMemory = navigator.deviceMemory || null;
+    const cores = navigator.hardwareConcurrency || null;
+
+    const lowEnd =
+      (typeof deviceMemory === 'number' && deviceMemory <= 4) ||
+      (typeof cores === 'number' && cores <= 4) ||
+      (isAndroid && typeof deviceMemory === 'number' && deviceMemory <= 6);
+
+    return { isAndroid, isIOS, lowEnd, deviceMemory, cores };
   }
 
   /**
@@ -231,8 +248,15 @@ class App {
   async _initCamera() {
     this._setLoading('正在开启灵视之眼…');
     try {
+      const p = this._perfProfile || this._detectPerfProfile();
+      const lowEnd = !!p.lowEnd;
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: {
+          facingMode: 'user',
+          width: { ideal: lowEnd ? 640 : 1280 },
+          height: { ideal: lowEnd ? 480 : 720 },
+          frameRate: lowEnd ? { ideal: 24, max: 30 } : { ideal: 30, max: 60 },
+        },
         audio: false,
       });
       this.els.camera.srcObject = stream;
@@ -256,8 +280,10 @@ class App {
 
   async _initGesture() {
     this._setLoading('正在加载手势模型…（首次约 8MB，请稍候）');
+    const p = this._perfProfile || this._detectPerfProfile();
     await this.gestureEngine.init(this.els.camera, {
       onStatus: (msg) => this._setLoading(msg),
+      perfProfile: p,
     });
     this.gestureEngine.onGesture = (gesture, landmarks) => {
       this._handleGesture(gesture, landmarks);

@@ -524,15 +524,19 @@ html, body {
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* ===== 摄像头 — 完全隐藏 ===== */
+/* ===== 摄像头 =====
+ * iOS Safari 对“极小/不可见 video”可能不更新帧，导致识别永远为 0。
+ * 这里保持一个合理尺寸，但完全不可交互且视觉上不可见。
+ */
 #camera {
   position: fixed;
-  top: -9999px;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
+  top: 0;
+  left: 0;
+  width: 320px;
+  height: 240px;
   opacity: 0;
   pointer-events: none;
+  z-index: -1;
 }
 
 #camera-overlay {
