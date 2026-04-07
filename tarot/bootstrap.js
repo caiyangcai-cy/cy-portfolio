@@ -19,6 +19,52 @@ function setStatus(text) {
   if (statusEl) statusEl.textContent = text;
 }
 
+/** 与 App 内逻辑一致，用于在点击瞬间预请求摄像头（保留用户手势激活，避免全屏门户里长时间加载后系统不弹授权） */
+function detectPerfProfileQuick() {
+  const ua = navigator.userAgent || '';
+  const isAndroid = /Android/i.test(ua);
+  const deviceMemory = navigator.deviceMemory || null;
+  const cores = navigator.hardwareConcurrency || null;
+  const lowEnd =
+    (typeof deviceMemory === 'number' && deviceMemory <= 4) ||
+    (typeof cores === 'number' && cores <= 4) ||
+    (isAndroid && typeof deviceMemory === 'number' && deviceMemory <= 6);
+  return { lowEnd };
+}
+
+function notifyParentCameraMessage(type) {
+  try {
+    if (window.parent === window) return;
+    window.parent.postMessage({ type, source: 'tarot' }, '*');
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+/** 在用户点击「开启占卜仪式」的同一交互链内尽早请求摄像头 */
+async function requestCameraInUserGesture() {
+  if (!navigator.mediaDevices?.getUserMedia) return;
+  const { lowEnd } = detectPerfProfileQuick();
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'user',
+        width: { ideal: lowEnd ? 640 : 1280 },
+        height: { ideal: lowEnd ? 480 : 720 },
+        frameRate: lowEnd ? { ideal: 24, max: 30 } : { ideal: 30, max: 60 },
+      },
+      audio: false,
+    });
+    window.__tarotPreCameraStream = stream;
+    window.__tarotCameraNotifySent = true;
+    // 授权弹窗可能导致父页退出全屏，此处通知门户页在授权结束后尝试恢复
+    notifyParentCameraMessage('cygame-camera-granted');
+  } catch (err) {
+    console.warn('预授权摄像头失败，进入后将重试:', err);
+    notifyParentCameraMessage('cygame-camera-denied');
+  }
+}
+
 /**
  * file:// 下摄像头无法使用，动态 import 跨域资源也常失败，提前说明避免白屏误判
  */
@@ -119,12 +165,16 @@ async function loadMediaPipe() {
       }
     })();
 
-    // 等待用户点击「开启占卜仪式」
+    // 等待用户点击「开启占卜仪式」— 先在同一手势链内请求摄像头，再进入长加载
     await new Promise(resolve => {
-      const handler = (e) => {
+      let done = false;
+      const handler = async (e) => {
         e.preventDefault();
+        if (done) return;
+        done = true;
         startBtn.removeEventListener('click', handler);
         startBtn.removeEventListener('touchend', handler);
+        await requestCameraInUserGesture();
         resolve();
       };
       startBtn.addEventListener('click', handler);

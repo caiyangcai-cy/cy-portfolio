@@ -245,23 +245,41 @@ class App {
     this.els.tarotCollection.style.pointerEvents = '';
   }
 
+  _notifyParentCameraGranted() {
+    try {
+      if (window.parent === window) return;
+      if (window.__tarotCameraNotifySent) return;
+      window.__tarotCameraNotifySent = true;
+      window.parent.postMessage({ type: 'cygame-camera-granted', source: 'tarot' }, '*');
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
   async _initCamera() {
     this._setLoading('正在开启灵视之眼…');
     try {
       const p = this._perfProfile || this._detectPerfProfile();
       const lowEnd = !!p.lowEnd;
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: lowEnd ? 640 : 1280 },
-          height: { ideal: lowEnd ? 480 : 720 },
-          frameRate: lowEnd ? { ideal: 24, max: 30 } : { ideal: 30, max: 60 },
-        },
-        audio: false,
-      });
-      this.els.camera.srcObject = stream;
+
+      if (window.__tarotPreCameraStream) {
+        this.els.camera.srcObject = window.__tarotPreCameraStream;
+      } else {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: lowEnd ? 640 : 1280 },
+            height: { ideal: lowEnd ? 480 : 720 },
+            frameRate: lowEnd ? { ideal: 24, max: 30 } : { ideal: 30, max: 60 },
+          },
+          audio: false,
+        });
+        this.els.camera.srcObject = stream;
+      }
+
       await new Promise(resolve => { this.els.camera.onloadedmetadata = resolve; });
       await this.els.camera.play();
+      this._notifyParentCameraGranted();
       this._setLoading('塔罗牌灵已就绪');
     } catch (err) {
       console.error('摄像头初始化失败:', err);
